@@ -253,6 +253,14 @@ void SetupKNX(){
     Serial.println(knxSettings.door1_ga.c_str());    
     Serial.print("KNX Door2 GA: ");
     Serial.println(knxSettings.door2_ga.c_str());
+    Serial.print("KNX DoorBell GA: ");
+    Serial.println(knxSettings.doorbell_ga.c_str());
+    Serial.print("KNX LED-Ring ON/OFF GA: ");
+    Serial.println(knxSettings.led_ga.c_str());
+    Serial.print("KNX Ignore Touch GA: ");
+    Serial.println(knxSettings.touch_ga.c_str());
+    Serial.print("KNX Message / Status GA: ");
+    Serial.println(knxSettings.message_ga.c_str());
     #endif
 
   knx.physical_address_set(knx.PA_to_address(
@@ -428,7 +436,7 @@ void notifyClients(String message) {
 
 void notifyKNX(String message) {  
   if (String(settingsManager.getKNXSettings().message_ga).isEmpty() == false){
-      knx.answer_14byte_string(message_ga, message.c_str());
+      knx.write_14byte_string(message_ga, message.c_str());
       #ifdef DEBUG
         Serial.print("KNX Message: ");
         Serial.println(message);

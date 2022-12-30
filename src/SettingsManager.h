@@ -19,7 +19,6 @@ struct KNXSettings {
     String touch_ga = "";
     String door1_list = "";
     String door2_list = "";
-
     String knx_pa = "1.1.1";    
 };
 
@@ -33,7 +32,7 @@ struct AppSettings {
     String ntpServer = "pool.ntp.org";    
     String sensorPin = "00000000";
     String sensorPairingCode = "";
-    bool   sensorPairingValid = false;
+    bool   sensorPairingValid = false;    
 };
 
 class SettingsManager {       
