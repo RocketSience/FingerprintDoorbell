@@ -126,11 +126,15 @@ AsyncWebServer webServer(80); // AsyncWebServer  on port 80
 AsyncEventSource events("/events"); // event source (Server-Sent events)
 
 WiFiClient espClient;
+
+#ifdef MQTTFEATURE
 PubSubClient mqttClient(espClient);
+
 long lastMsg = 0;
 char msg[50];
 int value = 0;
 bool mqttConfigValid = true;
+#endif
 
 
 Match lastMatch;
@@ -429,9 +433,10 @@ void notifyClients(String message) {
   #endif
   addLogMessage(messageWithTimestamp);
   events.send(getLogMessagesAsHtml().c_str(),"message",millis(),1000);
-  
+  #ifdef MQTTFEATURE
   String mqttRootTopic = settingsManager.getAppSettings().mqttRootTopic;
   mqttClient.publish((String(mqttRootTopic) + "/lastLogMessage").c_str(), message.c_str());
+  #endif
 }
 
 void notifyKNX(String message) {  
@@ -805,6 +810,7 @@ void startWebserver(){
 }
 
 
+#ifdef MQTTFEATURE
 void mqttCallback(char* topic, byte* message, unsigned int length) {
   #ifdef DEBUG
   Serial.print("Message arrived on topic: ");
@@ -864,6 +870,7 @@ void mqttCallback(char* topic, byte* message, unsigned int length) {
   #endif  
 
 }
+#endif
 
 #ifdef CUSTOM_GPIOS
 static unsigned long prevCustomOutput1Time = 0;
@@ -1068,11 +1075,14 @@ void doRssiStatus(){
       rssi = WiFi.RSSI();
       char rssistr[10];
       sprintf(rssistr,"%ld",rssi);
+      #ifdef MQTTFEATURE
       String mqttRootTopic = settingsManager.getAppSettings().mqttRootTopic;
       mqttClient.publish((String(mqttRootTopic) + "/rssiStatus").c_str(), rssistr);      
+      #endif
     }  
 }
 
+#ifdef MQTTFEATURE
 void connectMqttClient() {
   if (!mqttClient.connected() && mqttConfigValid) {
     #ifdef DEBUG
@@ -1115,6 +1125,7 @@ void connectMqttClient() {
     }
   }
 }
+#endif
 
 
 void doScan()
@@ -1133,10 +1144,12 @@ void doScan()
         #ifdef DEBUG
         Serial.println("no finger");
         #endif
+        #ifdef MQTTFEATURE
         mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "off");
         mqttClient.publish((String(mqttRootTopic) + "/matchId").c_str(), "-1");
         mqttClient.publish((String(mqttRootTopic) + "/matchName").c_str(), "");
         mqttClient.publish((String(mqttRootTopic) + "/matchConfidence").c_str(), "-1");
+        #endif
       }      
       break; 
 
@@ -1145,10 +1158,12 @@ void doScan()
       doorBell_blocked = true; // block Doorbell for n seconds
       if (match.scanResult != lastMatch.scanResult) {
         if (checkPairingValid()) {
+          #ifdef MQTTFEATURE
           mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "off");
           mqttClient.publish((String(mqttRootTopic) + "/matchId").c_str(), String(match.matchId).c_str());
           mqttClient.publish((String(mqttRootTopic) + "/matchName").c_str(), match.matchName.c_str());
           mqttClient.publish((String(mqttRootTopic) + "/matchConfidence").c_str(), String(match.matchConfidence).c_str());
+          #endif
           #ifdef KNXFEATURE
              if (isNumberInList(door1List, ',',match.matchId)){
               door1_trigger = true;                  
@@ -1170,11 +1185,18 @@ void doScan()
                #endif
           }
           #endif
+          #ifdef MQTTFEATURE
           #ifdef DEBUG
           Serial.println("MQTT message sent: Open the door!");
           #endif
+          #endif
         } else {
+          #ifdef MQTTFEATURE
           notifyClients("Security issue! Match was not sent by MQTT because of invalid sensor pairing! This could potentially be an attack! If the sensor is new or has been replaced by you do a (re)pairing in settings page.");
+          #endif
+          #ifdef KNXFEATURE
+          notifyKNX("Pairing inval");
+          #endif
         }
       }
       currentMode = Mode::wait; //replaces delay(2000) i hate delays // wait some time before next scan to let the LED blink
@@ -1185,12 +1207,14 @@ void doScan()
       if (match.scanResult != lastMatch.scanResult) {        
         doorBell_trigger = true;        
         //digitalWrite(doorbellOutputPin, HIGH);
+        #ifdef MQTTFEATURE
         mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "on");
         mqttClient.publish((String(mqttRootTopic) + "/matchId").c_str(), "-1");
         mqttClient.publish((String(mqttRootTopic) + "/matchName").c_str(), "");
         mqttClient.publish((String(mqttRootTopic) + "/matchConfidence").c_str(), "-1");
+        #endif
         #ifdef DEBUG
-        Serial.println("MQTT message sent: ring the bell!");
+        Serial.println("Message sent: ring the bell!");
         #endif 
 
         #ifdef KNXFEATURE
@@ -1233,7 +1257,9 @@ void reboot()
   notifyClients("System is rebooting now...");
   delay(1000);
     
+  #ifdef MQTTFEATURE
   mqttClient.disconnect();
+  #endif
   espClient.stop();
   dnsServer.stop();
   webServer.end();
@@ -1291,6 +1317,7 @@ void setup()
     currentMode = Mode::scan;
     if (initWifi()) {
       startWebserver();
+      #ifdef MQTTFEATURE
       if (settingsManager.getAppSettings().mqttServer.isEmpty()) {
         mqttConfigValid = false;
         notifyClients("Error: No MQTT Broker is configured! Please go to settings and enter your server URL + user credentials.");
@@ -1314,6 +1341,7 @@ void setup()
           notifyClients("MQTT Server '" + settingsManager.getAppSettings().mqttServer + "' not found. Please check your settings.");
         }
       }
+      #endif
       if (fingerManager.connected)
         fingerManager.setLedRingReady();              
       else
@@ -1354,6 +1382,7 @@ void loop()
     }
 
     // reconnect mqtt if down
+    #ifdef MQTTFEATURE
     if (!settingsManager.getAppSettings().mqttServer.isEmpty()) {
       if (!mqttClient.connected() && (now - mqttReconnectPreviousMillis >= 5000ul)) {
         connectMqttClient();
@@ -1361,6 +1390,7 @@ void loop()
       }
       mqttClient.loop();
     }
+    #endif
   }
 
 
