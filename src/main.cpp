@@ -144,6 +144,21 @@ Match lastMatch;
 
 #ifdef KNXFEATURE
 
+void notifyKNX(String message) {  
+  if (String(settingsManager.getKNXSettings().message_ga).isEmpty() == false){
+      knx.write_14byte_string(message_ga, message.c_str());
+      #ifdef DEBUG
+        Serial.print("KNX Message: ");
+        Serial.println(message);
+      #endif
+}else{
+  #ifdef DEBUG
+        Serial.print("KNX Message (no GA): ");
+        Serial.println(message);
+      #endif
+}
+}
+
 void led_cb(message_t const &msg, void *arg)
 {
 	//switch (ct)
@@ -152,10 +167,13 @@ void led_cb(message_t const &msg, void *arg)
 	case KNX_CT_WRITE:
 		if (msg.data[0] == 1){
       fingerManager.setLedTouchRing(true);
+      notifyKNX(String("LED_ON"));
     }
     else if (msg.data[0] == 0){
       fingerManager.setLedTouchRing(false);
+      notifyKNX(String("LED_OFF"));
     }
+    
     #ifdef DEBUG
         Serial.println("LED Write Callback triggered!");
         Serial.print("Value: ");
@@ -186,9 +204,11 @@ void touch_cb(message_t const &msg, void *arg)
 	case KNX_CT_WRITE:
 		if (msg.data[0] == 1){
       fingerManager.setIgnoreTouchRing(false);
+      notifyKNX(String("TOUCH_ON"));
     }
     else if (msg.data[0] == 0){
       fingerManager.setIgnoreTouchRing(true);
+      notifyKNX(String("TOUCH_OFF"));
     }
     #ifdef DEBUG
         Serial.println("Touch Write Callback triggered!");
@@ -451,20 +471,7 @@ void notifyClients(String message) {
   #endif
 }
 
-void notifyKNX(String message) {  
-  if (String(settingsManager.getKNXSettings().message_ga).isEmpty() == false){
-      knx.write_14byte_string(message_ga, message.c_str());
-      #ifdef DEBUG
-        Serial.print("KNX Message: ");
-        Serial.println(message);
-      #endif
-}else{
-  #ifdef DEBUG
-        Serial.print("KNX Message (no GA): ");
-        Serial.println(message);
-      #endif
-}
-}
+
 
 void updateClientsFingerlist(String fingerlist) {
   #ifdef DEBUG
@@ -963,8 +970,7 @@ void doDoorbell(){
     #ifdef CUSTOM_GPIOS
       digitalWrite(doorbellOutputPin, HIGH);    
     #endif
-  }
-  if ((active == true) && (millis() - startTime >= doorBell_impulseDuration))
+  }else if ((active == true) && (millis() - startTime >= doorBell_impulseDuration))
 	{		
     active = false;
     #ifdef KNXFEATURE
@@ -983,7 +989,6 @@ void doDoorbell(){
       digitalWrite(doorbellOutputPin, LOW);
     #endif
   } 
-
 }
 
   void doDoor1(){  
@@ -1008,9 +1013,7 @@ void doDoorbell(){
     #ifdef CUSTOM_GPIOS
       digitalWrite(customOutput1, HIGH);    
     #endif
-  }   
-  
-  if ((active == true) && (millis() - startTime >= door1_impulseDuration))
+  }else if ((active == true) && (millis() - startTime >= door1_impulseDuration))
 	{		
     active = false;
     #ifdef KNXFEATURE
@@ -1028,47 +1031,7 @@ void doDoorbell(){
     #ifdef CUSTOM_GPIOS
       digitalWrite(customOutput1, LOW);
     #endif
-  }
-  
-}
-
-void doAlarmDisable(){  
-  static bool active = false;
-  static unsigned long startTime = 0;
-  if (alarm_disable_trigger == true){
-    active = true;    
-    alarm_disable_trigger = false;
-    startTime = millis();            
-    #ifdef KNXFEATURE
-      if (String(settingsManager.getKNXSettings().alarmdisable_ga).isEmpty() == false){
-      knx.write_1bit(alarmdisable_ga, 0);
-      #ifdef DEBUG
-        Serial.println("alarm_disable_triggered!");
-      #endif
-      }else{
-        #ifdef DEBUG
-        Serial.println("alarm_disable_triggered_no_GA!");
-      #endif
-      }
-    #endif    
   }  
-  if ((active == true) && (millis() - startTime >= alarm_disable_impulseDuration))
-	{		
-    active = false;
-    #ifdef KNXFEATURE
-      if (String(settingsManager.getKNXSettings().alarmdisable_ga).isEmpty() == false){
-      knx.write_1bit(alarmdisable_ga, 0);
-      #ifdef DEBUG
-        Serial.println("alarm_disable_repeated!");
-      #endif
-      }else{
-        #ifdef DEBUG
-        Serial.println("alarm_disable_repeated_no_GA!");
-      #endif
-      }
-    #endif    
-  }
-  
 }
 
 void doDoor2(){  
@@ -1093,9 +1056,7 @@ void doDoor2(){
     #ifdef CUSTOM_GPIOS
       digitalWrite(customOutput2, HIGH);    
     #endif
-  }  
-  
-  if ((active == true) && (millis() - startTime >= door2_impulseDuration))
+  }else if ((active == true) && (millis() - startTime >= door2_impulseDuration))
 	{		
     active = false;
     #ifdef KNXFEATURE
@@ -1113,8 +1074,44 @@ void doDoor2(){
     #ifdef CUSTOM_GPIOS
       digitalWrite(customOutput2, LOW);
     #endif
-  }
-  
+  }  
+}
+
+void doAlarmDisable(){  
+  static bool active = false;
+  static unsigned long startTime = 0;
+  if (alarm_disable_trigger == true){
+    active = true;    
+    alarm_disable_trigger = false;
+    startTime = millis();            
+    #ifdef KNXFEATURE
+      if (String(settingsManager.getKNXSettings().alarmdisable_ga).isEmpty() == false){
+      knx.write_1bit(alarmdisable_ga, 0);
+      #ifdef DEBUG
+        Serial.println("alarm_disable_triggered!");
+      #endif
+      }else{
+        #ifdef DEBUG
+        Serial.println("alarm_disable_triggered_no_GA!");
+      #endif
+      }
+    #endif    
+  }else if ((active == true) && (millis() - startTime >= alarm_disable_impulseDuration))
+	{		
+    active = false;
+    #ifdef KNXFEATURE
+      if (String(settingsManager.getKNXSettings().alarmdisable_ga).isEmpty() == false){
+      knx.write_1bit(alarmdisable_ga, 0);
+      #ifdef DEBUG
+        Serial.println("alarm_disable_repeated!");
+      #endif
+      }else{
+        #ifdef DEBUG
+        Serial.println("alarm_disable_repeated_no_GA!");
+      #endif
+      }
+    #endif    
+  }  
 }
 
 void doRssiStatus(){
