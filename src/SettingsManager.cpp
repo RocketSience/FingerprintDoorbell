@@ -40,6 +40,7 @@ bool SettingsManager::loadKNXSettings() {
         knxSettings.door1_ga = preferences.getString("door1_ga", String(""));
         knxSettings.door2_ga = preferences.getString("door2_ga", String(""));
         knxSettings.doorbell_ga = preferences.getString("doorbell_ga", String(""));        
+        knxSettings.alarmdisable_ga = preferences.getString("alarmdisable_ga", String("")); 
         knxSettings.led_ga = preferences.getString("led_ga", String(""));        
         knxSettings.touch_ga = preferences.getString("touch_ga", String(""));
         knxSettings.message_ga = preferences.getString("message_ga", String(""));                
@@ -68,6 +69,7 @@ void SettingsManager::saveKNXSettings() {
     preferences.putString("door1_ga", knxSettings.door1_ga);
     preferences.putString("door2_ga", knxSettings.door2_ga);
     preferences.putString("doorbell_ga", knxSettings.doorbell_ga);
+    preferences.putString("alarmdisable_ga", knxSettings.alarmdisable_ga);
     preferences.putString("led_ga", knxSettings.led_ga);
     preferences.putString("touch_ga", knxSettings.touch_ga);
     preferences.putString("message_ga", knxSettings.message_ga);

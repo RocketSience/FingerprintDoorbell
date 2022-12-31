@@ -31,6 +31,7 @@ address_t door1_ga;
 address_t door2_ga;
 address_t message_ga;
 address_t doorbell_ga;
+address_t alarmdisable_ga;
 address_t led_ga;
 address_t touch_ga;
 #endif
@@ -93,10 +94,12 @@ long rssi = 0.0;
 
   const unsigned long door1_impulseDuration = 2 * 1000UL; 
   const unsigned long door2_impulseDuration = 2 * 1000UL; 
+  const unsigned long alarm_disable_impulseDuration = 1 * 1000UL; 
   const unsigned long wait_Duration = 2 * 1000UL;  
   bool doorBell_trigger = false; 
   bool door1_trigger = false; 
   bool door2_trigger = false;   
+  bool alarm_disable_trigger = false;   
 
 #ifdef DOORBELL_FEATURE
 // Timer DoorBell
@@ -259,6 +262,8 @@ void SetupKNX(){
     Serial.println(knxSettings.door2_ga.c_str());
     Serial.print("KNX DoorBell GA: ");
     Serial.println(knxSettings.doorbell_ga.c_str());
+    Serial.print("KNX Alarm Disable GA: ");
+    Serial.println(knxSettings.alarmdisable_ga.c_str());
     Serial.print("KNX LED-Ring ON/OFF GA: ");
     Serial.println(knxSettings.led_ga.c_str());
     Serial.print("KNX Ignore Touch GA: ");
@@ -286,6 +291,11 @@ void SetupKNX(){
     getValue(knxSettings.doorbell_ga,'/',0), 
     getValue(knxSettings.doorbell_ga,'/',1), 
     getValue(knxSettings.doorbell_ga,'/',2)); 
+
+  alarmdisable_ga = knx.GA_to_address(
+    getValue(knxSettings.alarmdisable_ga,'/',0), 
+    getValue(knxSettings.alarmdisable_ga,'/',1), 
+    getValue(knxSettings.alarmdisable_ga,'/',2)); 
 
   message_ga = knx.GA_to_address(
     getValue(knxSettings.message_ga,'/',0), 
@@ -409,6 +419,8 @@ String processor(const String& var){
     return settingsManager.getKNXSettings().door2_ga;
     } else if (var == "DOORBELL_GA") {
     return settingsManager.getKNXSettings().doorbell_ga;
+    } else if (var == "ALARMDISABLE_GA") {
+    return settingsManager.getKNXSettings().alarmdisable_ga;
     } else if (var == "MESSAGE_GA") {
     return settingsManager.getKNXSettings().message_ga;
     } else if (var == "LED_GA") {
@@ -712,6 +724,7 @@ void startWebserver(){
         settings.door1_ga = request->arg("door1_ga");
         settings.door2_ga = request->arg("door2_ga");
         settings.doorbell_ga = request->arg("doorbell_ga");
+        settings.alarmdisable_ga = request->arg("alarmdisable_ga");
         settings.led_ga = request->arg("led_ga");
         settings.touch_ga = request->arg("touch_ga");        
         settings.message_ga = request->arg("message_ga");
@@ -995,7 +1008,7 @@ void doDoorbell(){
     #ifdef CUSTOM_GPIOS
       digitalWrite(customOutput1, HIGH);    
     #endif
-  }  
+  }   
   
   if ((active == true) && (millis() - startTime >= door1_impulseDuration))
 	{		
@@ -1015,6 +1028,45 @@ void doDoorbell(){
     #ifdef CUSTOM_GPIOS
       digitalWrite(customOutput1, LOW);
     #endif
+  }
+  
+}
+
+void doAlarmDisable(){  
+  static bool active = false;
+  static unsigned long startTime = 0;
+  if (alarm_disable_trigger == true){
+    active = true;    
+    alarm_disable_trigger = false;
+    startTime = millis();            
+    #ifdef KNXFEATURE
+      if (String(settingsManager.getKNXSettings().alarmdisable_ga).isEmpty() == false){
+      knx.write_1bit(alarmdisable_ga, 0);
+      #ifdef DEBUG
+        Serial.println("alarm_disable_triggered!");
+      #endif
+      }else{
+        #ifdef DEBUG
+        Serial.println("alarm_disable_triggered_no_GA!");
+      #endif
+      }
+    #endif    
+  }  
+  if ((active == true) && (millis() - startTime >= alarm_disable_impulseDuration))
+	{		
+    active = false;
+    #ifdef KNXFEATURE
+      if (String(settingsManager.getKNXSettings().alarmdisable_ga).isEmpty() == false){
+      knx.write_1bit(alarmdisable_ga, 0);
+      #ifdef DEBUG
+        Serial.println("alarm_disable_repeated!");
+      #endif
+      }else{
+        #ifdef DEBUG
+        Serial.println("alarm_disable_repeated_no_GA!");
+      #endif
+      }
+    #endif    
   }
   
 }
@@ -1165,13 +1217,20 @@ void doScan()
           mqttClient.publish((String(mqttRootTopic) + "/matchConfidence").c_str(), String(match.matchConfidence).c_str());
           #endif
           #ifdef KNXFEATURE
+             if ((isNumberInList(door1List, ',',match.matchId))||(isNumberInList(door2List, ',',match.matchId))){
+              alarm_disable_trigger = true;              
+              notifyKNX( String("AD_L1|2/ID") + match.matchId);
+              #ifdef DEBUG
+               Serial.println("Finger in list 1 or 2! Disable Alarm!");
+              #endif
+             }           
+             
              if (isNumberInList(door1List, ',',match.matchId)){
-              door1_trigger = true;                  
+              door1_trigger = true;              
               notifyKNX( String("D1/ID") + match.matchId + "/C" + match.matchConfidence );
               #ifdef DEBUG
                Serial.println("Finger in list 1! Open the door 1!");
               #endif
-             
           }else if (isNumberInList(door2List, ',',match.matchId)){
               door2_trigger = true;              
               notifyKNX( String("D2/ID") + match.matchId + "/C" + match.matchConfidence );
@@ -1430,6 +1489,7 @@ doRssiStatus();
  
 #ifdef KNXFEATURE 
 knx.loop();
+doAlarmDisable();
 doDoorbellBlock();
 doDoorbell();
 doDoor1();
