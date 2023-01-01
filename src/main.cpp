@@ -32,8 +32,12 @@ address_t door2_ga;
 address_t message_ga;
 address_t doorbell_ga;
 address_t alarmdisable_ga;
+address_t alarmarmed_ga;
+address_t autounarm_ga;
 address_t led_ga;
 address_t touch_ga;
+bool alarm_system_armed = false;
+
 #endif
 
 #if defined(ESP8266)
@@ -144,6 +148,29 @@ Match lastMatch;
 
 #ifdef KNXFEATURE
 
+// Preferences
+int loadRemanentIntFromPrefs(String key) {
+  Preferences preferences;
+  preferences.begin("Remanent", true); 
+  int value = preferences.getInt(key.c_str(), -1);
+  #ifdef DEBUG
+  Serial.println((String)"loaded from Prefs: KEY:" + key + " VALUE:" + value);  
+  #endif  
+  preferences.end();
+  return value;
+}
+
+void saveRemanentIntToPrefs(String key, int value) {
+  Preferences preferences;
+  preferences.begin("Remanent", false); 
+  preferences.putInt(key.c_str(), value);
+  #ifdef DEBUG
+  Serial.println((String)"saved to Prefs: KEY:" + key + " VALUE:" + value);  
+  #endif  
+  preferences.end();  
+}
+
+
 void notifyKNX(String message) {  
   if (String(settingsManager.getKNXSettings().message_ga).isEmpty() == false){
       knx.write_14byte_string(message_ga, message.c_str());
@@ -167,10 +194,12 @@ void led_cb(message_t const &msg, void *arg)
 	case KNX_CT_WRITE:
 		if (msg.data[0] == 1){
       fingerManager.setLedTouchRing(true);
+      saveRemanentIntToPrefs ("led", 1);
       notifyKNX(String("LED_ON"));
     }
     else if (msg.data[0] == 0){
       fingerManager.setLedTouchRing(false);
+      saveRemanentIntToPrefs ("led", 0);
       notifyKNX(String("LED_OFF"));
     }
     
@@ -204,10 +233,12 @@ void touch_cb(message_t const &msg, void *arg)
 	case KNX_CT_WRITE:
 		if (msg.data[0] == 1){
       fingerManager.setIgnoreTouchRing(false);
-      notifyKNX(String("TOUCH_ON"));
+      saveRemanentIntToPrefs ("touch_ignore", 1);      
+      notifyKNX(String("TOUCH_ON"));      
     }
     else if (msg.data[0] == 0){
       fingerManager.setIgnoreTouchRing(true);
+      saveRemanentIntToPrefs ("touch_ignore", 0); 
       notifyKNX(String("TOUCH_OFF"));
     }
     #ifdef DEBUG
@@ -224,6 +255,43 @@ void touch_cb(message_t const &msg, void *arg)
 	case KNX_CT_READ:
     #ifdef DEBUG
         Serial.println("Touch Read Callback triggered!");
+    #endif
+		// Answer with a value
+		//knx.answer_2byte_float(msg.received_on, DHTtemp);
+		//delay(10);
+		//knx.answer_2byte_float(knx.config_get_ga(hum_ga), DHThum);
+		break;
+	}
+}
+
+void alarm_armed_cb(message_t const &msg, void *arg)
+{
+	//switch (ct)
+	switch (msg.ct)
+	{
+	case KNX_CT_WRITE:
+		if (msg.data[0] == 1){
+      alarm_system_armed = true;
+      saveRemanentIntToPrefs ("alarm_armed", 1);      
+    }
+    else if (msg.data[0] == 0){
+      alarm_system_armed = false;
+      saveRemanentIntToPrefs ("alarm_armed", 0);      
+    }    
+    #ifdef DEBUG
+        Serial.println("Alarm Status Callback triggered!");
+        Serial.print("Value: ");
+        Serial.println(msg.data[0]);
+
+    #endif
+    // Do something, like a digitalWrite
+		// Or send a telegram like this:
+		//uint8_t my_msg = 42;
+		//knx.write1ByteInt(knx.config_get_ga(my_GA), my_msg);
+		break;
+	case KNX_CT_READ:
+    #ifdef DEBUG
+        Serial.println("Alarm Status Read Callback triggered!");
     #endif
 		// Answer with a value
 		//knx.answer_2byte_float(msg.received_on, DHTtemp);
@@ -284,6 +352,10 @@ void SetupKNX(){
     Serial.println(knxSettings.doorbell_ga.c_str());
     Serial.print("KNX Alarm Disable GA: ");
     Serial.println(knxSettings.alarmdisable_ga.c_str());
+    Serial.print("KNX Alarm is armed GA: ");
+    Serial.println(knxSettings.alarmarmed_ga.c_str());
+    Serial.print("KNX Alarm automatic undarmed GA: ");
+    Serial.println(knxSettings.autounarm_ga.c_str());
     Serial.print("KNX LED-Ring ON/OFF GA: ");
     Serial.println(knxSettings.led_ga.c_str());
     Serial.print("KNX Ignore Touch GA: ");
@@ -317,6 +389,16 @@ void SetupKNX(){
     getValue(knxSettings.alarmdisable_ga,'/',1), 
     getValue(knxSettings.alarmdisable_ga,'/',2)); 
 
+  alarmarmed_ga = knx.GA_to_address(
+    getValue(knxSettings.alarmarmed_ga,'/',0), 
+    getValue(knxSettings.alarmarmed_ga,'/',1), 
+    getValue(knxSettings.alarmarmed_ga,'/',2)); 
+
+  autounarm_ga = knx.GA_to_address(
+    getValue(knxSettings.autounarm_ga,'/',0), 
+    getValue(knxSettings.autounarm_ga,'/',1), 
+    getValue(knxSettings.autounarm_ga,'/',2)); 
+
   message_ga = knx.GA_to_address(
     getValue(knxSettings.message_ga,'/',0), 
     getValue(knxSettings.message_ga,'/',1), 
@@ -334,6 +416,7 @@ void SetupKNX(){
 
   callback_id_t set_LED_id = knx.callback_register("Set LED Ring on/off", led_cb);
   callback_id_t set_TOUCH_id = knx.callback_register("Set Touch Ignore on/off", touch_cb);  
+  callback_id_t set_ALARM_ARMED_id = knx.callback_register("Status from Alarm System to FingerPrint", alarm_armed_cb);     
 
   // Assign callbacks to group addresses  
   knx.callback_assign(set_LED_id, knx.GA_to_address(
@@ -345,6 +428,12 @@ void SetupKNX(){
      getValue(knxSettings.touch_ga,'/',0), 
      getValue(knxSettings.touch_ga,'/',1), 
      getValue(knxSettings.touch_ga,'/',2))); 
+
+  knx.callback_assign(set_ALARM_ARMED_id, knx.GA_to_address(
+     getValue(knxSettings.alarmarmed_ga,'/',0), 
+     getValue(knxSettings.alarmarmed_ga,'/',1), 
+     getValue(knxSettings.alarmarmed_ga,'/',2))); 
+
 }
 #endif
 
@@ -441,6 +530,10 @@ String processor(const String& var){
     return settingsManager.getKNXSettings().doorbell_ga;
     } else if (var == "ALARMDISABLE_GA") {
     return settingsManager.getKNXSettings().alarmdisable_ga;
+    } else if (var == "ALARMARMED_GA") {
+    return settingsManager.getKNXSettings().alarmarmed_ga;
+    } else if (var == "AUTOUNARM_GA") {
+    return settingsManager.getKNXSettings().autounarm_ga;
     } else if (var == "MESSAGE_GA") {
     return settingsManager.getKNXSettings().message_ga;
     } else if (var == "LED_GA") {
@@ -732,6 +825,8 @@ void startWebserver(){
         settings.door2_ga = request->arg("door2_ga");
         settings.doorbell_ga = request->arg("doorbell_ga");
         settings.alarmdisable_ga = request->arg("alarmdisable_ga");
+        settings.alarmarmed_ga = request->arg("alarmarmed_ga");
+        settings.autounarm_ga = request->arg("autounarm_ga");
         settings.led_ga = request->arg("led_ga");
         settings.touch_ga = request->arg("touch_ga");        
         settings.message_ga = request->arg("message_ga");
@@ -745,7 +840,6 @@ void startWebserver(){
         request->send(SPIFFS, "/knx.html", String(), false, processor);
       }
     });
-
 
     webServer.on("/pairing", HTTP_GET, [](AsyncWebServerRequest *request){
       if(request->hasArg("btnDoPairing"))
@@ -951,7 +1045,9 @@ void doDoorbellBlock(){
 void doDoorbell(){  
   static bool active = false;
   static unsigned long startTime = 0;
-  if ((doorBell_trigger == true) && (doorBell_blocked == false)){
+  if ((doorBell_trigger == true) && (doorBell_blocked == true))
+  doorBell_trigger = false;
+  else if ((doorBell_trigger == true)){  
     active = true;    
     doorBell_trigger = false;
     startTime = millis();            
@@ -1110,8 +1206,14 @@ void doAlarmDisable(){
         Serial.println("alarm_disable_repeated_no_GA!");
       #endif
       }
-    #endif    
-  }  
+      if ((alarm_system_armed == true) && (String(settingsManager.getKNXSettings().autounarm_ga).isEmpty() == false)){
+      knx.write_1bit(autounarm_ga, 1);
+      #ifdef DEBUG
+        Serial.println("alarm_autounarm_Message_triggered!");
+      #endif
+      }
+    #endif      
+}
 }
 
 void doRssiStatus(){
@@ -1349,7 +1451,6 @@ void setup()
   settingsManager.loadWifiSettings();
   settingsManager.loadAppSettings();  
   settingsManager.loadKNXSettings(); 
-
   fingerManager.connect();
   
   if (!checkPairingValid())
@@ -1403,8 +1504,29 @@ void setup()
       else
         fingerManager.setLedRingError();
       
+      #ifdef KNXFEATURE
       SetupKNX();
       knx.start();
+      if (loadRemanentIntFromPrefs("alarm_armed") > 0){
+        alarm_system_armed = true;
+      }else if (loadRemanentIntFromPrefs("alarm_armed") == 0){
+        alarm_system_armed = false;
+      }
+
+      if (loadRemanentIntFromPrefs("led") > 0){
+        fingerManager.setLedTouchRing(true);
+      }else if(loadRemanentIntFromPrefs("led") == 0){
+        fingerManager.setLedTouchRing(false);
+      }   
+
+      if (loadRemanentIntFromPrefs("touch_ignore") > 0){
+        fingerManager.setIgnoreTouchRing(true);
+      }else if (loadRemanentIntFromPrefs("touch_ignore") == 0){
+        fingerManager.setIgnoreTouchRing(false);
+      }      
+
+
+      #endif
 
     }  else {
       fingerManager.setLedRingError();

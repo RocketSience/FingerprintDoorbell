@@ -14,7 +14,12 @@ struct KNXSettings {
     String door1_ga = "1/3/90";
     String door2_ga = "1/3/90";
     String doorbell_ga = "1/3/90";
-    String alarmdisable_ga = "1/3/90";
+    String alarmdisable_ga = "1/3/90";    
+    String alarmarmed_ga = "1/3/90";
+    String autounarm_ga = "1/3/90";
+    
+
+    
     String message_ga = "1/3/90";
     String led_ga = "";
     String touch_ga = "";

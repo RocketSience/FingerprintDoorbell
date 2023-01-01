@@ -81,73 +81,8 @@
 	<fieldset>
 
 	<!-- Form Name -->
-	<legend>KNX</legend>
-
-	<!-- Text input-->
-	<div class="form-group">
-		<label class="col-md-4 control-label" for="knx_pa">Physical Address</label>  
-		<div class="col-md-4">
-		<input id="knx_pa" name="knx_pa" type="text" placeholder="Physical Address in format 1.1.84" class="form-control input-md" value="%KNX_PA%">
-		<small class="text-muted">PA Format: 1.1.84</small>		
-		</div>
-	</div>
-
-	<div class="form-group">
-		<label class="col-md-4 control-label" for="door1_ga">Door_1 Group Address</label>  
-		<div class="col-md-4">
-		<input id="door1_ga" name="door1_ga" type="text" placeholder="Group Address in format 7/3/35" class="form-control input-md" value="%DOOR1_GA%">
-		<small class="text-muted">GA Format: 7/3/35</small>		
-		</div>
-	</div>
-
-	<div class="form-group">
-		<label class="col-md-4 control-label" for="door2_ga">Door_2 Group Address</label>  
-		<div class="col-md-4">
-		<input id="door2_ga" name="door2_ga" type="text" placeholder="Group Address in format 3/5/1" class="form-control input-md" value="%DOOR2_GA%">
-		<small class="text-muted">GA Format: 3/5/1</small>		
-		</div>
-	</div>
-
-	<div class="form-group">
-		<label class="col-md-4 control-label" for="doorbell_ga">Door Bell Group Address</label>  
-		<div class="col-md-4">
-		<input id="doorbell_ga" name="doorbell_ga" type="text" placeholder="Group Address in format 7/3/31" class="form-control input-md" value="%DOORBELL_GA%">
-		<small class="text-muted">GA Format: 7/3/31</small>		
-		</div>
-	</div>
-
-	<div class="form-group">
-		<label class="col-md-4 control-label" for="alarmdisable_ga">Alarm / EMA Disable Group Address</label>  
-		<div class="col-md-4">
-		<input id="alarmdisable_ga" name="alarmdisable_ga" type="text" placeholder="Group Address in format 7/7/22" class="form-control input-md" value="%ALARMDISABLE_GA%">
-		<small class="text-muted">GA Format: 7/7/22</small>		
-		</div>
-	</div>
-
-	<div class="form-group">
-		<label class="col-md-4 control-label" for="led_ga">LED_ON/OFF Group Address</label>  
-		<div class="col-md-4">
-		<input id="led_ga" name="led_ga" type="text" placeholder="Group Address in format 7/5/121" class="form-control input-md" value="%LED_GA%">
-		<small class="text-muted">GA Format: 7/5/121</small>		
-		</div>
-	</div>
-
-	<div class="form-group">
-		<label class="col-md-4 control-label" for="touch_ga">Touch_Ring_Ignore Group Address</label>  
-		<div class="col-md-4">
-		<input id="touch_ga" name="touch_ga" type="text" placeholder="Group Address in format 7/5/122" class="form-control input-md" value="%TOUCH_GA%">
-		<small class="text-muted">GA Format: 7/5/122</small>		
-		</div>
-	</div>
+	<legend>KNX</legend>	
 	
-		<div class="form-group">
-		<label class="col-md-4 control-label" for="message_ga">Message Feedback Group Address</label>  
-		<div class="col-md-4">
-		<input id="message_ga" name="message_ga" type="text" placeholder="Group Address in format 7/5/120" class="form-control input-md" value="%MESSAGE_GA%">
-		<small class="text-muted">GA Format: 7/5/120</small>		
-		</div>
-	</div>	
-
 	<!-- Text input-->
 	<div class="form-group">
 		<label class="col-md-4 control-label" for="door1_list">Finger Mapping Door1</label>  
@@ -165,6 +100,88 @@
 		<small class="text-muted">List Format: 1,3,7,11,15</small>		
 		</div>
 	</div>
+	
+	<div class="form-group">
+		<label class="col-md-4 control-label" for="knx_pa">Physical Address</label>  
+		<div class="col-md-4">
+		<input id="knx_pa" name="knx_pa" type="text" placeholder="Physical Address in format 1.1.84" class="form-control input-md" value="%KNX_PA%">
+		<small class="text-muted">PA Format: 1.1.84</small>		
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label class="col-md-4 control-label" for="door1_ga">[OUT] Door_1 Group Address</label>  
+		<div class="col-md-4">
+		<input id="door1_ga" name="door1_ga" type="text" placeholder="Group Address in format 7/3/35" class="form-control input-md" value="%DOOR1_GA%">
+		<small class="text-muted">GA Format: 7/3/35</small>		
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label class="col-md-4 control-label" for="door2_ga">[OUT] Door_2 Group Address</label>  
+		<div class="col-md-4">
+		<input id="door2_ga" name="door2_ga" type="text" placeholder="Group Address in format 3/5/1" class="form-control input-md" value="%DOOR2_GA%">
+		<small class="text-muted">GA Format: 3/5/1</small>		
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label class="col-md-4 control-label" for="doorbell_ga">[OUT] Door Bell Group Address</label>  
+		<div class="col-md-4">
+		<input id="doorbell_ga" name="doorbell_ga" type="text" placeholder="Group Address in format 7/3/31" class="form-control input-md" value="%DOORBELL_GA%">
+		<small class="text-muted">GA Format: 7/3/31</small>		
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label class="col-md-4 control-label" for="alarmdisable_ga">[OUT] Alarm / EMA Disable Group Address</label>  
+		<div class="col-md-4">
+		<input id="alarmdisable_ga" name="alarmdisable_ga" type="text" placeholder="Group Address in format 7/7/22" class="form-control input-md" value="%ALARMDISABLE_GA%">
+		<small class="text-muted">GA Format: 7/7/22</small>		
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label class="col-md-4 control-label" for="autounarm_ga">[OUT] Inform Display about automatic disabling the Alarm / EMA System Group Address</label>
+		<div class="col-md-4">
+		<input id="autounarm_ga" name="autounarm_ga" type="text" placeholder="Group Address in format 7/3/111" class="form-control input-md" value="%AUTOUNARM_GA%">
+		<small class="text-muted">GA Format: 7/3/111</small>		
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label class="col-md-4 control-label" for="alarmarmed_ga">[IN] Status ARMED/UNARMED from Alarm / EMA System Group Address</label>  
+		<div class="col-md-4">
+		<input id="alarmarmed_ga" name="alarmarmed_ga" type="text" placeholder="Group Address in format 7/7/23" class="form-control input-md" value="%ALARMARMED_GA%">
+		<small class="text-muted">GA Format: 7/7/23</small>		
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label class="col-md-4 control-label" for="led_ga">[IN] LED_ON/OFF Group Address</label>  
+		<div class="col-md-4">
+		<input id="led_ga" name="led_ga" type="text" placeholder="Group Address in format 7/5/121" class="form-control input-md" value="%LED_GA%">
+		<small class="text-muted">GA Format: 7/5/121</small>		
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label class="col-md-4 control-label" for="touch_ga">[IN] Touch_Ring_Ignore Group Address</label>  
+		<div class="col-md-4">
+		<input id="touch_ga" name="touch_ga" type="text" placeholder="Group Address in format 7/5/122" class="form-control input-md" value="%TOUCH_GA%">
+		<small class="text-muted">GA Format: 7/5/122</small>		
+		</div>
+	</div>
+	
+		<div class="form-group">
+		<label class="col-md-4 control-label" for="message_ga">[OUT] Message Feedback Group Address</label>  
+		<div class="col-md-4">
+		<input id="message_ga" name="message_ga" type="text" placeholder="Group Address in format 7/5/120" class="form-control input-md" value="%MESSAGE_GA%">
+		<small class="text-muted">GA Format: 7/5/120</small>		
+		</div>
+	</div>	
+
+	
 
 	<!-- Button -->
 	<div class="form-group">
