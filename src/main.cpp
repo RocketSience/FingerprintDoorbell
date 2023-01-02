@@ -94,6 +94,7 @@ long rssi = 0.0;
   const unsigned long doorBell_impulseDuration = 1 * 1000UL; 
   const unsigned long doorBell_blockAfterMatchDuration = 10 * 1000UL; 
   bool doorBell_blocked = false;
+  bool doorBell_block_trigger = false;
 
 
   const unsigned long door1_impulseDuration = 2 * 1000UL; 
@@ -233,12 +234,12 @@ void touch_cb(message_t const &msg, void *arg)
 	case KNX_CT_WRITE:
 		if (msg.data[0] == 1){
       fingerManager.setIgnoreTouchRing(false);
-      saveRemanentIntToPrefs ("touch_ignore", 1);      
+      saveRemanentIntToPrefs ("touch_on", 1);      
       notifyKNX(String("TOUCH_ON"));      
     }
     else if (msg.data[0] == 0){
       fingerManager.setIgnoreTouchRing(true);
-      saveRemanentIntToPrefs ("touch_ignore", 0); 
+      saveRemanentIntToPrefs ("touch_on", 0); 
       notifyKNX(String("TOUCH_OFF"));
     }
     #ifdef DEBUG
@@ -1027,11 +1028,13 @@ void doWait(unsigned long duration){
 void doDoorbellBlock(){  
   static bool active = false;
   static unsigned long startTime = 0;
- if ((doorBell_blocked == true) && (active == false)){
+ if ((doorBell_block_trigger == true)){
+  doorBell_block_trigger = false;
+  doorBell_blocked = true;
+  active = true;
   #ifdef DEBUG
         Serial.println("doorbell_blocked!");
-      #endif
-  active = true;  
+  #endif    
   startTime = millis();  
  }else if ((active == true) && (millis() - startTime >= doorBell_blockAfterMatchDuration)){
     #ifdef DEBUG
@@ -1047,13 +1050,15 @@ void doDoorbell(){
   static unsigned long startTime = 0;
   if ((doorBell_trigger == true) && (doorBell_blocked == true))
   doorBell_trigger = false;
-  else if ((doorBell_trigger == true)){  
+  else if ((doorBell_trigger == true) && (doorBell_blocked == false)){  
     active = true;    
     doorBell_trigger = false;
     startTime = millis();            
     #ifdef KNXFEATURE
       if (String(settingsManager.getKNXSettings().doorbell_ga).isEmpty() == false){
       knx.write_1bit(doorbell_ga, 1);
+      notifyKNX( String("No Match: ring"));
+      
       #ifdef DEBUG
         Serial.println("doorbell_triggered!");
       #endif
@@ -1306,7 +1311,8 @@ void doScan()
 
     case ScanResult::matchFound:
       notifyClients( String("Match Found: ") + match.matchId + " - " + match.matchName  + " with confidence of " + match.matchConfidence );
-      doorBell_blocked = true; // block Doorbell for n seconds
+      //doorBell_blocked = true; // block Doorbell for n seconds
+      doorBell_block_trigger = true; // block Doorbell for n seconds
       if (match.scanResult != lastMatch.scanResult) {
         if (checkPairingValid()) {
           #ifdef MQTTFEATURE
@@ -1519,10 +1525,10 @@ void setup()
         fingerManager.setLedTouchRing(false);
       }   
 
-      if (loadRemanentIntFromPrefs("touch_ignore") > 0){
-        fingerManager.setIgnoreTouchRing(true);
-      }else if (loadRemanentIntFromPrefs("touch_ignore") == 0){
+      if (loadRemanentIntFromPrefs("touch_on") > 0){
         fingerManager.setIgnoreTouchRing(false);
+      }else if (loadRemanentIntFromPrefs("touch_on") == 0){
+        fingerManager.setIgnoreTouchRing(true);
       }      
 
 
