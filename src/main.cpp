@@ -1046,6 +1046,7 @@ void doDoorbellBlock(){
 }
 
 void doDoorbell(){  
+  String mqttRootTopic = settingsManager.getAppSettings().mqttRootTopic;
   static bool active = false;
   static unsigned long startTime = 0;
   if ((doorBell_trigger == true) && (doorBell_blocked == true))
@@ -1054,6 +1055,9 @@ void doDoorbell(){
     active = true;    
     doorBell_trigger = false;
     startTime = millis();            
+    #ifdef MQTTFEATURE
+    mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "on");
+    #endif
     #ifdef KNXFEATURE
       if (String(settingsManager.getKNXSettings().doorbell_ga).isEmpty() == false){
       knx.write_1bit(doorbell_ga, 1);
@@ -1074,6 +1078,9 @@ void doDoorbell(){
   }else if ((active == true) && (millis() - startTime >= doorBell_impulseDuration))
 	{		
     active = false;
+    #ifdef MQTTFEATURE
+    mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "off");
+    #endif
     #ifdef KNXFEATURE
       if (String(settingsManager.getKNXSettings().doorbell_ga).isEmpty() == false){
       knx.write_1bit(doorbell_ga, 0);
@@ -1092,6 +1099,7 @@ void doDoorbell(){
   } 
 }
 
+  #ifdef KNXFEATURE
   void doDoor1(){  
   static bool active = false;
   static unsigned long startTime = 0;
@@ -1134,7 +1142,9 @@ void doDoorbell(){
     #endif
   }  
 }
+#endif
 
+#ifdef KNXFEATURE
 void doDoor2(){  
   static bool active = false;
   static unsigned long startTime = 0;
@@ -1177,7 +1187,9 @@ void doDoor2(){
     #endif
   }  
 }
+#endif
 
+#ifdef KNXFEATURE
 void doAlarmDisable(){  
   static bool active = false;
   static unsigned long startTime = 0;
@@ -1220,6 +1232,7 @@ void doAlarmDisable(){
     #endif      
 }
 }
+#endif
 
 void doRssiStatus(){
   static unsigned long startTime = 0;
@@ -1310,9 +1323,8 @@ void doScan()
       break; 
 
     case ScanResult::matchFound:
-      notifyClients( String("Match Found: ") + match.matchId + " - " + match.matchName  + " with confidence of " + match.matchConfidence );
-      //doorBell_blocked = true; // block Doorbell for n seconds
-      doorBell_block_trigger = true; // block Doorbell for n seconds
+      notifyClients( String("Match Found: ") + match.matchId + " - " + match.matchName  + " with confidence of " + match.matchConfidence );      
+      doorBell_block_trigger = true; // block Doorbell for n seconds 
       if (match.scanResult != lastMatch.scanResult) {
         if (checkPairingValid()) {
           #ifdef MQTTFEATURE
@@ -1372,7 +1384,7 @@ void doScan()
         doorBell_trigger = true;        
         //digitalWrite(doorbellOutputPin, HIGH);
         #ifdef MQTTFEATURE
-        mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "on");
+        //mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "on"); 
         mqttClient.publish((String(mqttRootTopic) + "/matchId").c_str(), "-1");
         mqttClient.publish((String(mqttRootTopic) + "/matchName").c_str(), "");
         mqttClient.publish((String(mqttRootTopic) + "/matchConfidence").c_str(), "-1");
@@ -1615,11 +1627,12 @@ doRssiStatus();
 #ifdef KNXFEATURE 
 knx.loop();
 doAlarmDisable();
-doDoorbellBlock();
-doDoorbell();
 doDoor1();
 doDoor2();
 #endif
+
+doDoorbellBlock();
+doDoorbell();
 
 #ifdef CUSTOM_GPIOS
     // read custom inputs and publish by MQTT
