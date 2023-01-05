@@ -37,6 +37,7 @@ address_t autounarm_ga;
 address_t led_ga;
 address_t touch_ga;
 bool alarm_system_armed = false;
+//String knx_router_ip = "192.168.0.199";
 
 #endif
 
@@ -344,7 +345,9 @@ void SetupKNX(){
   KNXSettings knxSettings = settingsManager.getKNXSettings();
     #ifdef DEBUG
     Serial.print("KNX PA: ");
-    Serial.println(knxSettings.knx_pa.c_str());        
+    Serial.println(knxSettings.knx_pa.c_str());
+    Serial.print("KNX Router IP: ");
+    Serial.println(knxSettings.knxrouter_ip.c_str());         
     Serial.print("KNX Door1 GA: ");
     Serial.println(knxSettings.door1_ga.c_str());    
     Serial.print("KNX Door2 GA: ");
@@ -365,10 +368,11 @@ void SetupKNX(){
     Serial.println(knxSettings.message_ga.c_str());
     #endif
 
-  knx.physical_address_set(knx.PA_to_address(
+  /*knx.physical_address_set(knx.PA_to_address(
     getValue(knxSettings.knx_pa,'.',0), 
     getValue(knxSettings.knx_pa,'.',1), 
     getValue(knxSettings.knx_pa,'.',2)));   
+  */
 
   door1_ga = knx.GA_to_address(
     getValue(knxSettings.door1_ga,'/',0), 
@@ -435,6 +439,8 @@ void SetupKNX(){
      getValue(knxSettings.alarmarmed_ga,'/',1), 
      getValue(knxSettings.alarmarmed_ga,'/',2))); 
 
+    //knx.udpAddress_set(knx_router_ip.c_str());
+    knx.udpAddress_set(knxSettings.knxrouter_ip.c_str());
 }
 #endif
 
@@ -523,6 +529,8 @@ String processor(const String& var){
 
     } else if (var == "KNX_PA") {
     return settingsManager.getKNXSettings().knx_pa;
+    } else if (var == "KNXROUTER_IP") {
+    return settingsManager.getKNXSettings().knxrouter_ip;
     } else if (var == "DOOR1_GA") {
     return settingsManager.getKNXSettings().door1_ga;
     } else if (var == "DOOR2_GA") {
@@ -832,6 +840,7 @@ void startWebserver(){
         settings.touch_ga = request->arg("touch_ga");        
         settings.message_ga = request->arg("message_ga");
         settings.knx_pa = request->arg("knx_pa");
+        settings.knxrouter_ip = request->arg("knxrouter_ip");
         settings.door1_list = request->arg("door1_list");
         settings.door2_list = request->arg("door2_list");
         settingsManager.saveKNXSettings(settings);

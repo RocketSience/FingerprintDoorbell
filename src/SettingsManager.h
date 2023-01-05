@@ -26,6 +26,7 @@ struct KNXSettings {
     String door1_list = "";
     String door2_list = "";
     String knx_pa = "1.1.1";    
+    String knxrouter_ip = "192.168.0.199";
 };
 
 struct AppSettings {

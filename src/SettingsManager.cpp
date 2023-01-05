@@ -47,6 +47,7 @@ bool SettingsManager::loadKNXSettings() {
         knxSettings.touch_ga = preferences.getString("touch_ga", String(""));
         knxSettings.message_ga = preferences.getString("message_ga", String(""));                
         knxSettings.knx_pa = preferences.getString("knx_pa", String("1.1.1"));
+        knxSettings.knxrouter_ip = preferences.getString("knxrouter_ip", String("192.168.0.199"));
         knxSettings.door1_list = preferences.getString("door1_list", String(""));        
         knxSettings.door2_list = preferences.getString("door2_list", String(""));       
         preferences.end();
@@ -78,6 +79,7 @@ void SettingsManager::saveKNXSettings() {
     preferences.putString("touch_ga", knxSettings.touch_ga);
     preferences.putString("message_ga", knxSettings.message_ga);
     preferences.putString("knx_pa", knxSettings.knx_pa);
+    preferences.putString("knxrouter_ip", knxSettings.knxrouter_ip);
     preferences.putString("door1_list", knxSettings.door1_list);
     preferences.putString("door2_list", knxSettings.door2_list);
     preferences.end();
