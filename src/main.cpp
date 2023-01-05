@@ -1069,16 +1069,16 @@ void doDoorbell(){
     #endif
     #ifdef KNXFEATURE
       if (String(settingsManager.getKNXSettings().doorbell_ga).isEmpty() == false){
-      knx.write_1bit(doorbell_ga, 1);
-      notifyKNX( String("No Match: ring"));
+        knx.write_1bit(doorbell_ga, 1);
+        notifyKNX( String("No Match: ring"));
       
-      #ifdef DEBUG
-        Serial.println("doorbell_triggered!");
-      #endif
+        #ifdef DEBUG
+          Serial.println("doorbell_triggered!");
+        #endif
       }else{
         #ifdef DEBUG
-        Serial.println("doorbell_triggered_no_GA!");
-      #endif
+          Serial.println("doorbell_triggered_no_GA!");
+        #endif
       }
     #endif
     #ifdef CUSTOM_GPIOS
@@ -1088,18 +1088,18 @@ void doDoorbell(){
 	{		
     active = false;
     #ifdef MQTTFEATURE
-    mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "off");
+      mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "off");
     #endif
     #ifdef KNXFEATURE
       if (String(settingsManager.getKNXSettings().doorbell_ga).isEmpty() == false){
-      knx.write_1bit(doorbell_ga, 0);
-      #ifdef DEBUG
-        Serial.println("doorBell_triggered_end!");
-      #endif
+        knx.write_1bit(doorbell_ga, 0);
+        #ifdef DEBUG
+          Serial.println("doorBell_triggered_end!");
+        #endif
       }else{
         #ifdef DEBUG
-        Serial.println("doorBell_triggered_end_no_GA!");
-      #endif
+          Serial.println("doorBell_triggered_end_no_GA!");
+        #endif
       }
     #endif
     #ifdef CUSTOM_GPIOS
@@ -1391,21 +1391,15 @@ void doScan()
       notifyClients(String("No Match Found (Code ") + match.returnCode + ")");
       if (match.scanResult != lastMatch.scanResult) {        
         doorBell_trigger = true;        
-        //digitalWrite(doorbellOutputPin, HIGH);
-        #ifdef MQTTFEATURE
-        //mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "on"); 
-        mqttClient.publish((String(mqttRootTopic) + "/matchId").c_str(), "-1");
-        mqttClient.publish((String(mqttRootTopic) + "/matchName").c_str(), "");
-        mqttClient.publish((String(mqttRootTopic) + "/matchConfidence").c_str(), "-1");
+        
+        #ifdef MQTTFEATURE        
+           mqttClient.publish((String(mqttRootTopic) + "/matchId").c_str(), "-1");
+           mqttClient.publish((String(mqttRootTopic) + "/matchName").c_str(), "");
+           mqttClient.publish((String(mqttRootTopic) + "/matchConfidence").c_str(), "-1");
         #endif
         #ifdef DEBUG
-        Serial.println("Message sent: ring the bell!");
-        #endif 
-
-        #ifdef KNXFEATURE
-        notifyKNX( String("No Match: ring"));
-        #endif
-               
+           Serial.println("Message sent: ring the bell!");
+        #endif                       
         currentMode = Mode::wait; //replaces delay(2000) i hate delays // wait some time before next scan to let the LED blink        
       } else {
         
