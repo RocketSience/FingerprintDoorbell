@@ -1365,8 +1365,9 @@ void doScan()
                #endif
           }else{
                notifyKNX( String("xx/ID") + match.matchId + "/C" + match.matchConfidence );
+               doorBell_trigger = true; // ring if finger not maped
                #ifdef DEBUG
-                Serial.println("Finger not in List1 and List2!");
+                Serial.println("Finger not in List1 and List2! - ring!");
                #endif
           }
           #endif
