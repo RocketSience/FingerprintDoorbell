@@ -43,8 +43,10 @@ bool SettingsManager::loadKNXSettings() {
         knxSettings.alarmdisable_ga = preferences.getString("alarmdisable_ga", String("")); 
         knxSettings.alarmarmed_ga = preferences.getString("alarmarmed_ga", String("")); 
         knxSettings.autounarm_ga = preferences.getString("autounarm_ga", String("")); 
-        knxSettings.led_ga = preferences.getString("led_ga", String(""));        
+        knxSettings.led_ga = preferences.getString("led_ga", String(""));
+        knxSettings.ledstate_ga = preferences.getString("ledstate_ga", String(""));        
         knxSettings.touch_ga = preferences.getString("touch_ga", String(""));
+        knxSettings.touchstate_ga = preferences.getString("touch_ga", String(""));
         knxSettings.message_ga = preferences.getString("message_ga", String(""));                
         knxSettings.knx_pa = preferences.getString("knx_pa", String("1.1.1"));
         knxSettings.knxrouter_ip = preferences.getString("knxrouter_ip", String("192.168.0.199"));
@@ -76,7 +78,9 @@ void SettingsManager::saveKNXSettings() {
     preferences.putString("alarmarmed_ga", knxSettings.alarmarmed_ga);
     preferences.putString("autounarm_ga", knxSettings.autounarm_ga);   
     preferences.putString("led_ga", knxSettings.led_ga);
+    preferences.putString("ledstate_ga", knxSettings.ledstate_ga);
     preferences.putString("touch_ga", knxSettings.touch_ga);
+    preferences.putString("touchstate_ga", knxSettings.touchstate_ga);
     preferences.putString("message_ga", knxSettings.message_ga);
     preferences.putString("knx_pa", knxSettings.knx_pa);
     preferences.putString("knxrouter_ip", knxSettings.knxrouter_ip);

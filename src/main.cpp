@@ -35,7 +35,9 @@ address_t alarmdisable_ga;
 address_t alarmarmed_ga;
 address_t autounarm_ga;
 address_t led_ga;
+address_t ledstate_ga;
 address_t touch_ga;
+address_t touchstate_ga;
 bool alarm_system_armed = false;
 //String knx_router_ip = "192.168.0.199";
 
@@ -188,6 +190,20 @@ void notifyKNX(String message) {
 }
 }
 
+void ledStatusToKNX(){
+  static int lastLedState = -1;
+  if (fingerManager.LedTouchRing != lastLedState){
+    lastLedState = fingerManager.LedTouchRing;
+    }
+}
+
+void touchStatusToKNX(){
+  static int lastTouchState = -1;
+  if (fingerManager.ignoreTouchRing != lastTouchState){
+    lastTouchState = fingerManager.ignoreTouchRing;
+    }
+}
+
 void led_cb(message_t const &msg, void *arg)
 {
 	//switch (ct)
@@ -209,20 +225,14 @@ void led_cb(message_t const &msg, void *arg)
         Serial.println("LED Write Callback triggered!");
         Serial.print("Value: ");
         Serial.println(msg.data[0]);
-    #endif
-    // Do something, like a digitalWrite
-		// Or send a telegram like this:
-		//uint8_t my_msg = 42;
-		//knx.write1ByteInt(knx.config_get_ga(my_GA), my_msg);
+    #endif    
 		break;
 	case KNX_CT_READ:
     #ifdef DEBUG
         Serial.println("LED Read Callback triggered!");
     #endif
-		// Answer with a value
-		//knx.answer_2byte_float(msg.received_on, DHTtemp);
-		//delay(10);
-		//knx.answer_2byte_float(knx.config_get_ga(hum_ga), DHThum);
+		    knx.answer_1bit(ledstate_ga, fingerManager.LedTouchRing);
+        Serial.println((String)"LED State: " + fingerManager.LedTouchRing);    
 		break;
 	}
 }
@@ -247,21 +257,19 @@ void touch_cb(message_t const &msg, void *arg)
         Serial.println("Touch Write Callback triggered!");
         Serial.print("Value: ");
         Serial.println(msg.data[0]);
-
-    #endif
-    // Do something, like a digitalWrite
-		// Or send a telegram like this:
-		//uint8_t my_msg = 42;
-		//knx.write1ByteInt(knx.config_get_ga(my_GA), my_msg);
+    #endif    
 		break;
 	case KNX_CT_READ:
     #ifdef DEBUG
         Serial.println("Touch Read Callback triggered!");
     #endif
-		// Answer with a value
-		//knx.answer_2byte_float(msg.received_on, DHTtemp);
-		//delay(10);
-		//knx.answer_2byte_float(knx.config_get_ga(hum_ga), DHThum);
+		  if (fingerManager.ignoreTouchRing == 1){
+        knx.answer_1bit(touchstate_ga, false);
+        Serial.println((String)"Touch State: OFF");
+      }else{
+        knx.answer_1bit(touchstate_ga, true);
+        Serial.println((String)"Touch State: ON");
+      }    
 		break;
 	}
 }
@@ -285,20 +293,12 @@ void alarm_armed_cb(message_t const &msg, void *arg)
         Serial.print("Value: ");
         Serial.println(msg.data[0]);
 
-    #endif
-    // Do something, like a digitalWrite
-		// Or send a telegram like this:
-		//uint8_t my_msg = 42;
-		//knx.write1ByteInt(knx.config_get_ga(my_GA), my_msg);
+    #endif    
 		break;
 	case KNX_CT_READ:
     #ifdef DEBUG
         Serial.println("Alarm Status Read Callback triggered!");
-    #endif
-		// Answer with a value
-		//knx.answer_2byte_float(msg.received_on, DHTtemp);
-		//delay(10);
-		//knx.answer_2byte_float(knx.config_get_ga(hum_ga), DHThum);
+    #endif		
 		break;
 	}
 }
@@ -362,8 +362,12 @@ void SetupKNX(){
     Serial.println(knxSettings.autounarm_ga.c_str());
     Serial.print("KNX LED-Ring ON/OFF GA: ");
     Serial.println(knxSettings.led_ga.c_str());
+    Serial.print("KNX LED-Ring ON/OFF State GA: ");
+    Serial.println(knxSettings.ledstate_ga.c_str());
     Serial.print("KNX Ignore Touch GA: ");
     Serial.println(knxSettings.touch_ga.c_str());
+    Serial.print("KNX Ignore Touch State GA: ");
+    Serial.println(knxSettings.touchstate_ga.c_str());
     Serial.print("KNX Message / Status GA: ");
     Serial.println(knxSettings.message_ga.c_str());
     #endif
@@ -414,13 +418,25 @@ void SetupKNX(){
     getValue(knxSettings.led_ga,'/',1), 
     getValue(knxSettings.led_ga,'/',2)); 
 
+  ledstate_ga = knx.GA_to_address(
+    getValue(knxSettings.ledstate_ga,'/',0), 
+    getValue(knxSettings.ledstate_ga,'/',1), 
+    getValue(knxSettings.ledstate_ga,'/',2)); 
+
   touch_ga = knx.GA_to_address(
     getValue(knxSettings.touch_ga,'/',0), 
     getValue(knxSettings.touch_ga,'/',1), 
     getValue(knxSettings.touch_ga,'/',2)); 
 
+  touchstate_ga = knx.GA_to_address(
+    getValue(knxSettings.touchstate_ga,'/',0), 
+    getValue(knxSettings.touchstate_ga,'/',1), 
+    getValue(knxSettings.touchstate_ga,'/',2)); 
+
   callback_id_t set_LED_id = knx.callback_register("Set LED Ring on/off", led_cb);
+  callback_id_t get_LEDSTATE_id = knx.callback_register("Get LED Ring State on/off", led_cb);
   callback_id_t set_TOUCH_id = knx.callback_register("Set Touch Ignore on/off", touch_cb);  
+  callback_id_t get_TOUCHSTATE_id = knx.callback_register("Get Touch Ignore State on/off", touch_cb);  
   callback_id_t set_ALARM_ARMED_id = knx.callback_register("Status from Alarm System to FingerPrint", alarm_armed_cb);     
 
   // Assign callbacks to group addresses  
@@ -429,10 +445,20 @@ void SetupKNX(){
      getValue(knxSettings.led_ga,'/',1), 
      getValue(knxSettings.led_ga,'/',2))); 
 
+  knx.callback_assign(get_LEDSTATE_id, knx.GA_to_address(
+     getValue(knxSettings.ledstate_ga,'/',0), 
+     getValue(knxSettings.ledstate_ga,'/',1), 
+     getValue(knxSettings.ledstate_ga,'/',2))); 
+
   knx.callback_assign(set_TOUCH_id, knx.GA_to_address(
      getValue(knxSettings.touch_ga,'/',0), 
      getValue(knxSettings.touch_ga,'/',1), 
      getValue(knxSettings.touch_ga,'/',2))); 
+
+  knx.callback_assign(get_TOUCHSTATE_id, knx.GA_to_address(
+     getValue(knxSettings.touchstate_ga,'/',0), 
+     getValue(knxSettings.touchstate_ga,'/',1), 
+     getValue(knxSettings.touchstate_ga,'/',2))); 
 
   knx.callback_assign(set_ALARM_ARMED_id, knx.GA_to_address(
      getValue(knxSettings.alarmarmed_ga,'/',0), 
@@ -547,8 +573,12 @@ String processor(const String& var){
     return settingsManager.getKNXSettings().message_ga;
     } else if (var == "LED_GA") {
     return settingsManager.getKNXSettings().led_ga;
+    } else if (var == "LEDSTATE_GA") {
+    return settingsManager.getKNXSettings().ledstate_ga;
     } else if (var == "TOUCH_GA") {
     return settingsManager.getKNXSettings().touch_ga;
+    } else if (var == "TOUCHSTATE_GA") {
+    return settingsManager.getKNXSettings().touchstate_ga;
     } else if (var == "DOOR1_LIST") {
     return settingsManager.getKNXSettings().door1_list;
     } else if (var == "DOOR2_LIST") {
@@ -837,7 +867,9 @@ void startWebserver(){
         settings.alarmarmed_ga = request->arg("alarmarmed_ga");
         settings.autounarm_ga = request->arg("autounarm_ga");
         settings.led_ga = request->arg("led_ga");
+        settings.ledstate_ga = request->arg("ledstate_ga");
         settings.touch_ga = request->arg("touch_ga");        
+        settings.touchstate_ga = request->arg("touch_ga");        
         settings.message_ga = request->arg("message_ga");
         settings.knx_pa = request->arg("knx_pa");
         settings.knxrouter_ip = request->arg("knxrouter_ip");

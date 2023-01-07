@@ -18,11 +18,11 @@ struct KNXSettings {
     String alarmarmed_ga = "1/3/90";
     String autounarm_ga = "1/3/90";
     
-
-    
     String message_ga = "1/3/90";
     String led_ga = "";
+    String ledstate_ga = "";
     String touch_ga = "";
+    String touchstate_ga = "";
     String door1_list = "";
     String door2_list = "";
     String knx_pa = "1.1.1";    
