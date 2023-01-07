@@ -190,18 +190,28 @@ void notifyKNX(String message) {
 }
 }
 
-void ledStatusToKNX(){
+void ledStateToKNX(){
   static int lastLedState = -1;
   if (fingerManager.LedTouchRing != lastLedState){
     lastLedState = fingerManager.LedTouchRing;
+    if (String(settingsManager.getKNXSettings().ledstate_ga).isEmpty() == false){    
+    knx.write_1bit(ledstate_ga, lastLedState);
+    }
     }
 }
 
-void touchStatusToKNX(){
+void touchStateToKNX(){
   static int lastTouchState = -1;
   if (fingerManager.ignoreTouchRing != lastTouchState){
     lastTouchState = fingerManager.ignoreTouchRing;
+    if (String(settingsManager.getKNXSettings().touchstate_ga).isEmpty() == false){
+      if (lastTouchState == 1){
+        knx.write_1bit(touchstate_ga, false);        
+      }else{
+        knx.write_1bit(touchstate_ga, true);        
+      }    
     }
+  }
 }
 
 void led_cb(message_t const &msg, void *arg)
@@ -231,7 +241,9 @@ void led_cb(message_t const &msg, void *arg)
     #ifdef DEBUG
         Serial.println("LED Read Callback triggered!");
     #endif
-		    knx.answer_1bit(ledstate_ga, fingerManager.LedTouchRing);
+		    if (String(settingsManager.getKNXSettings().ledstate_ga).isEmpty() == false){
+        knx.answer_1bit(ledstate_ga, fingerManager.LedTouchRing);
+        }
         Serial.println((String)"LED State: " + fingerManager.LedTouchRing);    
 		break;
 	}
@@ -263,13 +275,15 @@ void touch_cb(message_t const &msg, void *arg)
     #ifdef DEBUG
         Serial.println("Touch Read Callback triggered!");
     #endif
-		  if (fingerManager.ignoreTouchRing == 1){
-        knx.answer_1bit(touchstate_ga, false);
-        Serial.println((String)"Touch State: OFF");
-      }else{
-        knx.answer_1bit(touchstate_ga, true);
-        Serial.println((String)"Touch State: ON");
-      }    
+		  if (String(settingsManager.getKNXSettings().touchstate_ga).isEmpty() == false){        
+        if (fingerManager.ignoreTouchRing == 1){
+          knx.answer_1bit(touchstate_ga, false);
+          Serial.println((String)"Touch State: OFF");
+        }else{
+          knx.answer_1bit(touchstate_ga, true);
+          Serial.println((String)"Touch State: ON");
+        }  
+      }  
 		break;
 	}
 }
@@ -869,7 +883,7 @@ void startWebserver(){
         settings.led_ga = request->arg("led_ga");
         settings.ledstate_ga = request->arg("ledstate_ga");
         settings.touch_ga = request->arg("touch_ga");        
-        settings.touchstate_ga = request->arg("touch_ga");        
+        settings.touchstate_ga = request->arg("touchstate_ga");        
         settings.message_ga = request->arg("message_ga");
         settings.knx_pa = request->arg("knx_pa");
         settings.knxrouter_ip = request->arg("knxrouter_ip");
@@ -1665,6 +1679,8 @@ knx.loop();
 doAlarmDisable();
 doDoor1();
 doDoor2();
+ledStateToKNX();
+touchStateToKNX();
 #endif
 
 doDoorbellBlock();

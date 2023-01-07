@@ -46,7 +46,7 @@ bool SettingsManager::loadKNXSettings() {
         knxSettings.led_ga = preferences.getString("led_ga", String(""));
         knxSettings.ledstate_ga = preferences.getString("ledstate_ga", String(""));        
         knxSettings.touch_ga = preferences.getString("touch_ga", String(""));
-        knxSettings.touchstate_ga = preferences.getString("touch_ga", String(""));
+        knxSettings.touchstate_ga = preferences.getString("touchstate_ga", String(""));
         knxSettings.message_ga = preferences.getString("message_ga", String(""));                
         knxSettings.knx_pa = preferences.getString("knx_pa", String("1.1.1"));
         knxSettings.knxrouter_ip = preferences.getString("knxrouter_ip", String("192.168.0.199"));
