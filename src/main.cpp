@@ -95,18 +95,22 @@ long rssi = 0.0;
 // Timer stuff 
   const unsigned long rssiStatusIntervall = 1 * 15000UL; //Trigger every 15 Seconds
   const unsigned long doorBell_impulseDuration = 1 * 1000UL; 
-  const unsigned long doorBell_blockAfterMatchDuration = 10 * 1000UL; 
+  const unsigned long doorBell_blockAfterMatchDuration = 10 * 1000UL;   
   bool doorBell_blocked = false;
   bool doorBell_block_trigger = false;
 
 
   const unsigned long door1_impulseDuration = 2 * 1000UL; 
   const unsigned long door2_impulseDuration = 2 * 1000UL; 
+  const unsigned long door1_triggerDelay = 1 * 1000UL; 
+  const unsigned long door2_triggerDelay = 1 * 1000UL; 
   const unsigned long alarm_disable_impulseDuration = 1 * 1000UL; 
   const unsigned long wait_Duration = 2 * 1000UL;  
   bool doorBell_trigger = false; 
   bool door1_trigger = false; 
-  bool door2_trigger = false;   
+  bool door2_trigger = false;  
+  bool door1_delayed_trigger = false;  
+  bool door2_delayed_trigger = false; 
   bool alarm_disable_trigger = false;   
 
 #ifdef DOORBELL_FEATURE
@@ -690,7 +694,7 @@ bool initWifi() {
 #endif
  #if defined(ESP8266)
   WiFi.hostname(wifiSettings.hostname.c_str()); //define hostname  
- #endif
+ #endif  
   
   WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
     #ifdef DEBUG   
@@ -716,7 +720,7 @@ bool initWifi() {
   // Print ESP32 Local IP Address
   #ifdef DEBUG
   Serial.println(WiFi.localIP());
-  #endif
+  #endif  
   return true;
 }
 
@@ -1100,6 +1104,45 @@ void doDoorbellBlock(){
 }
 }
 
+
+void doDoor1TriggerDelay(){  
+  static bool active = false;
+  static unsigned long startTime = 0;
+ if ((door1_delayed_trigger == true)){
+  door1_delayed_trigger = false;  
+  active = true;
+  #ifdef DEBUG
+        Serial.println("door1_trigger_delay_started!");
+  #endif    
+  startTime = millis();  
+ }else if ((active == true) && (millis() - startTime >= door1_triggerDelay)){
+    #ifdef DEBUG
+        Serial.println("door1_delayed_trigger_now!");
+      #endif
+  door1_trigger = true;
+  active = false;    
+}
+}
+
+void doDoor2TriggerDelay(){  
+  static bool active = false;
+  static unsigned long startTime = 0;
+ if ((door2_delayed_trigger == true)){
+  door2_delayed_trigger = false;  
+  active = true;
+  #ifdef DEBUG
+        Serial.println("door2_trigger_delay_started!");
+  #endif    
+  startTime = millis();  
+ }else if ((active == true) && (millis() - startTime >= door2_triggerDelay)){
+    #ifdef DEBUG
+        Serial.println("door2_delayed_trigger_now!");
+      #endif
+  door2_trigger = true;
+  active = false;    
+}
+}
+
 void doDoorbell(){  
   String mqttRootTopic = settingsManager.getAppSettings().mqttRootTopic;
   static bool active = false;
@@ -1398,13 +1441,21 @@ void doScan()
              }           
              
              if (isNumberInList(door1List, ',',match.matchId)){
-              door1_trigger = true;              
+              if(alarm_system_armed == true){
+                  door1_delayed_trigger = true; // give time to the alarm system 
+                }else{
+                  door1_trigger = true;
+                }              
               notifyKNX( String("D1/ID") + match.matchId + "/C" + match.matchConfidence );
               #ifdef DEBUG
                Serial.println("Finger in list 1! Open the door 1!");
               #endif
           }else if (isNumberInList(door2List, ',',match.matchId)){
-              door2_trigger = true;              
+              if(alarm_system_armed == true){
+                  door2_delayed_trigger = true; // give time to the alarm system 
+                }else{
+                  door2_trigger = true;
+                }                  
               notifyKNX( String("D2/ID") + match.matchId + "/C" + match.matchConfidence );
                #ifdef DEBUG
                 Serial.println("Finger in List2! Open the door2!");
@@ -1572,7 +1623,7 @@ void setup()
       else
         fingerManager.setLedRingError();
       
-      #ifdef KNXFEATURE
+      #ifdef KNXFEATURE      
       SetupKNX();
       knx.start();
       if (loadRemanentIntFromPrefs("alarm_armed") > 0){
@@ -1677,6 +1728,8 @@ doRssiStatus();
 #ifdef KNXFEATURE 
 knx.loop();
 doAlarmDisable();
+doDoor1TriggerDelay();
+doDoor2TriggerDelay();
 doDoor1();
 doDoor2();
 ledStateToKNX();
