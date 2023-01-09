@@ -587,7 +587,13 @@ String processor(const String& var){
     return settingsManager.getKNXSettings().alarmdisable_ga;
     } else if (var == "ALARMARMED_GA") {
     return settingsManager.getKNXSettings().alarmarmed_ga;
-    } else if (var == "AUTOUNARM_GA") {
+    }else if (var == "TOUCH_STATE") {
+      return fingerManager.ignoreTouchRing == 1 ? "OFF" : "ON";      
+    }else if (var == "LED_STATE") {      
+      return fingerManager.LedTouchRing == 1 ? "ON" : "OFF"; 
+    }else if (var == "ALARMSYSTEM_STATE") {      
+      return alarm_system_armed == 1 ? "ON" : "OFF";                 
+    }else if (var == "AUTOUNARM_GA") {
     return settingsManager.getKNXSettings().autounarm_ga;
     } else if (var == "MESSAGE_GA") {
     return settingsManager.getKNXSettings().message_ga;
