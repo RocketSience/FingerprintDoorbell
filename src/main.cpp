@@ -300,11 +300,13 @@ void alarm_armed_cb(message_t const &msg, void *arg)
 	case KNX_CT_WRITE:
 		if (msg.data[0] == 1){
       alarm_system_armed = true;
-      saveRemanentIntToPrefs ("alarm_armed", 1);      
+      saveRemanentIntToPrefs ("alarm_armed", 1);
+      notifyClients("Received: Alarm-System armed!");      
     }
     else if (msg.data[0] == 0){
       alarm_system_armed = false;
-      saveRemanentIntToPrefs ("alarm_armed", 0);      
+      saveRemanentIntToPrefs ("alarm_armed", 0);  
+      notifyClients("Received: Alarm-System disarmed!");          
     }    
     #ifdef DEBUG
         Serial.println("Alarm Status Callback triggered!");
