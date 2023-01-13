@@ -4,6 +4,7 @@
 
 #include <DNSServer.h>
 #include <time.h>
+#include <esp_sntp.h>
 #include <ESPAsyncWebServer.h>
 #include <AsyncElegantOTA.h>
 
@@ -746,7 +747,6 @@ void initWiFiAccessPointForConfiguration() {
   #endif
 }
 
-
 void startWebserver(){
   
   // Initialize SPIFFS
@@ -763,7 +763,12 @@ void startWebserver(){
     Serial.print("NTP Server: ");
     Serial.println(ntpServer);    
   #endif  
-  configTzTime(TIME_ZONE, ntpServer.c_str());   
+  // configTzTime(TIME_ZONE, ntpServer.c_str());   does not sync time, but uses wron local time after some days  
+  setenv("TZ", TIME_ZONE, 3);
+  tzset();
+  sntp_setoperatingmode(SNTP_OPMODE_POLL);
+  sntp_setservername(0, ntpServer.c_str());
+  sntp_init();
 
   // webserver for normal operating or wifi config?
   if (currentMode == Mode::wificonfig)
