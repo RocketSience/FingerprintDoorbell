@@ -24,8 +24,7 @@ struct KNXSettings {
     String touch_ga = "";
     String touchstate_ga = "";
     String door1_list = "";
-    String door2_list = "";
-    String knx_pa = "1.1.1";    
+    String door2_list = "";       
     String knxrouter_ip = "192.168.0.199";
 };
 

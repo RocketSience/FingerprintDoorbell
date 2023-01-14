@@ -364,9 +364,7 @@ bool isNumberInList(String data, char separator, int number)
 void SetupKNX(){			
   
   KNXSettings knxSettings = settingsManager.getKNXSettings();
-    #ifdef DEBUG
-    Serial.print("KNX PA: ");
-    Serial.println(knxSettings.knx_pa.c_str());
+    #ifdef DEBUG    
     Serial.print("KNX Router IP: ");
     Serial.println(knxSettings.knxrouter_ip.c_str());         
     Serial.print("KNX Door1 GA: ");
@@ -391,13 +389,7 @@ void SetupKNX(){
     Serial.println(knxSettings.touchstate_ga.c_str());
     Serial.print("KNX Message / Status GA: ");
     Serial.println(knxSettings.message_ga.c_str());
-    #endif
-
-  /*knx.physical_address_set(knx.PA_to_address(
-    getValue(knxSettings.knx_pa,'.',0), 
-    getValue(knxSettings.knx_pa,'.',1), 
-    getValue(knxSettings.knx_pa,'.',2)));   
-  */
+    #endif  
 
   door1_ga = knx.GA_to_address(
     getValue(knxSettings.door1_ga,'/',0), 
@@ -572,10 +564,7 @@ String processor(const String& var){
   } else if (var == "MQTT_ROOTTOPIC") {
     return settingsManager.getAppSettings().mqttRootTopic;
   } else if (var == "NTP_SERVER") {
-    return settingsManager.getAppSettings().ntpServer;
-
-    } else if (var == "KNX_PA") {
-    return settingsManager.getKNXSettings().knx_pa;
+    return settingsManager.getAppSettings().ntpServer;    
     } else if (var == "KNXROUTER_IP") {
     return settingsManager.getKNXSettings().knxrouter_ip;
     } else if (var == "DOOR1_GA") {
@@ -919,8 +908,7 @@ void startWebserver(){
         settings.ledstate_ga = request->arg("ledstate_ga");
         settings.touch_ga = request->arg("touch_ga");        
         settings.touchstate_ga = request->arg("touchstate_ga");        
-        settings.message_ga = request->arg("message_ga");
-        settings.knx_pa = request->arg("knx_pa");
+        settings.message_ga = request->arg("message_ga");        
         settings.knxrouter_ip = request->arg("knxrouter_ip");
         settings.door1_list = request->arg("door1_list");
         settings.door2_list = request->arg("door2_list");
@@ -1576,8 +1564,7 @@ void reboot()
 }
 
 void setup()
-{ 
-  
+{   
 
   #ifdef DEBUG
   // open serial monitor for debug infos  
