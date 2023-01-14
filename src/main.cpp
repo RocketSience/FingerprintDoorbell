@@ -4,15 +4,15 @@
 
 #include <DNSServer.h>
 #include <time.h>
-#include <esp_sntp.h>
 #include <ESPAsyncWebServer.h>
 #include <AsyncElegantOTA.h>
 
 #if defined(ESP32)
 //#include "SPIFFS.h"
+#include <WiFi.h>
+#include "esp_sntp.h"
 #include <LITTLEFS.h>
 #define SPIFFS LittleFS  //replace spiffs
-#include <WiFi.h>
 #endif
 #if defined(ESP8266)
 //#include <FS.h>
@@ -72,7 +72,7 @@ const char* WifiConfigSsid = "FingerprintDoorbell-Config"; // SSID used for WiFi
 const char* WifiConfigPassword = "12345678"; // password used for WiFi when in Access Point mode for configuration. Min. 8 chars needed!
 IPAddress   WifiConfigIp(192, 168, 4, 1); // IP of access point in wifi config mode
 
-const char TIME_ZONE[] = "MEZ-1MESZ-2,M3.5.0/02:00:00,M10.5.0/03:00:00"; //MEZ MESZ Time
+#define TIME_ZONE "MEZ-1MESZ-2,M3.5.0/02:00:00,M10.5.0/03:00:00"    
 
 const int   templateSamples = 3; //Fingerprint Samples for Template
 long rssi = 0.0;
@@ -510,7 +510,7 @@ String getLogMessagesAsHtml() {
 
 String getTimestampString(){
   struct tm timeinfo;
-  if(!getLocalTime(&timeinfo)){
+  if(!getLocalTime(&timeinfo, 5000)){
     #ifdef DEBUG
     Serial.println("Failed to obtain time");
     #endif
@@ -618,7 +618,7 @@ String processor(const String& var){
 
 // send LastMessage to websocket clients
 void notifyClients(String message) {
-  String messageWithTimestamp = "[" + getTimestampString() + "]: " + message;
+  String messageWithTimestamp = "[" + getTimestampString() + "]: " + message;  
   #ifdef DEBUG
   Serial.println(messageWithTimestamp);
   #endif
@@ -747,28 +747,46 @@ void initWiFiAccessPointForConfiguration() {
   #endif
 }
 
+#ifdef DEBUG
+void cbSyncTime(struct timeval *tv)  // callback function to show when NTP was synchronized
+{
+  notifyClients("NTP time synced");  
+}
+#endif
+
 void startWebserver(){
   
   // Initialize SPIFFS
   if(!SPIFFS.begin()){
     #ifdef DEBUG
-    Serial.println("An Error has occurred while mounting SPIFFS");
+    Serial.println(F("An Error has occurred while mounting SPIFFS"));
     #endif    
     //return;
   }
-
   // Init time by NTP Client  
-  String ntpServer = settingsManager.getAppSettings().ntpServer;
+  String ntp_Server = settingsManager.getAppSettings().ntpServer;
   #ifdef DEBUG
     Serial.print("NTP Server: ");
-    Serial.println(ntpServer);    
+    Serial.println(ntp_Server);    
   #endif  
+  
   // configTzTime(TIME_ZONE, ntpServer.c_str());   does not sync time, but uses wron local time after some days  
-  setenv("TZ", TIME_ZONE, 3);
+  
+  setenv("TZ", TIME_ZONE, 1);
   tzset();
   sntp_setoperatingmode(SNTP_OPMODE_POLL);
-  sntp_setservername(0, ntpServer.c_str());
-  sntp_init();
+  sntp_setservername(0, ntp_Server.c_str());  
+  sntp_set_sync_mode(SNTP_SYNC_MODE_IMMED);    
+  sntp_init();     
+  
+  int retry = 0;
+	const int retry_count = 10;
+	while ((sntp_get_sync_status() == SNTP_SYNC_STATUS_RESET) && (++retry < retry_count)) {
+		#ifdef DEBUG
+    Serial.println((String)"Waiting for system time to be set... (" + retry + "/" + retry_count+")");
+    #endif
+		delay(2000);
+	}    
 
   // webserver for normal operating or wifi config?
   if (currentMode == Mode::wificonfig)
@@ -1549,23 +1567,25 @@ void reboot()
     
   #ifdef MQTTFEATURE
   mqttClient.disconnect();
-  #endif
+  #endif  
   espClient.stop();
   dnsServer.stop();
-  webServer.end();
-  WiFi.disconnect();
+  webServer.end();  
+  WiFi.disconnect();  
   ESP.restart();
 }
 
 void setup()
-{  
+{ 
+  
+
   #ifdef DEBUG
   // open serial monitor for debug infos  
   Serial.begin(115200);
   while (!Serial);  // For Yun/Leo/Micro/Zero/...
-  delay(100);
+  delay(100);   
   #endif  
-
+    
   #ifdef CUSTOM_GPIOS     
     pinMode(customOutput1, OUTPUT); 
     pinMode(customOutput2, OUTPUT);
@@ -1604,6 +1624,7 @@ void setup()
     Serial.println("Started normal operating mode");
     #endif
     currentMode = Mode::scan;
+    //sntp_set_time_sync_notification_cb(cbSyncTime);
     if (initWifi()) {
       startWebserver();
       #ifdef MQTTFEATURE
@@ -1670,7 +1691,7 @@ void setup()
 }
 
 void loop()
-{
+{  
   // shouldReboot flag for supporting reboot through webui
   if (shouldReboot) {
     reboot();
