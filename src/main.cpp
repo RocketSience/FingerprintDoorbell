@@ -1727,6 +1727,7 @@ void loop()
   
   case Mode::enroll:
     doEnroll();
+    doorBell_block_trigger = true; // block Doorbell for n seconds because sometimes it gets triggered here
     currentMode = Mode::scan; // switch back to scan mode after enrollment is done
     break;
   
