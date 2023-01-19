@@ -6,20 +6,10 @@
 #include <time.h>
 #include <ESPAsyncWebServer.h>
 #include <AsyncElegantOTA.h>
-
-#if defined(ESP32)
-//#include "SPIFFS.h"
 #include <WiFi.h>
 #include "esp_sntp.h"
 #include <LITTLEFS.h>
 #define SPIFFS LittleFS  //replace spiffs
-#endif
-#if defined(ESP8266)
-//#include <FS.h>
-#include <LITTLEFS.h>
-#define SPIFFS LittleFS  //replace spiffs
-#include <ESP8266wifi.h>
-#endif
 #include <PubSubClient.h>
 #include "FingerprintManager.h"
 #include "SettingsManager.h"
@@ -40,30 +30,10 @@ address_t ledstate_ga;
 address_t touch_ga;
 address_t touchstate_ga;
 bool alarm_system_armed = false;
-//String knx_router_ip = "192.168.0.199";
-
-#endif
-
-#if defined(ESP8266)
-bool getLocalTime(struct tm * info, uint32_t ms = 5000)
-{
-    uint32_t start = millis();
-    time_t now;
-    while((millis()-start) <= ms) {
-        time(&now);
-        localtime_r(&now, info);
-        if(info->tm_year > (2016 - 1900)){
-            return true;
-        }
-        delay(10);
-    }
-    return false;
-}
 #endif
 
 enum class Mode { scan, wait, enroll, wificonfig, maintenance };
-
-const char* VersionInfo = "0.50";
+const char* VersionInfo = "0.60";
 
 // ===================================================================================================================
 // Caution: below are not the credentials for connecting to your home network, they are for the Access Point mode!!!
@@ -686,13 +656,7 @@ bool initWifi() {
   // Connect to Wi-Fi
   WifiSettings wifiSettings = settingsManager.getWifiSettings();
   WiFi.mode(WIFI_STA);
-  //WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
-#if defined(ESP32)
   WiFi.setHostname(wifiSettings.hostname.c_str()); //define hostname
-#endif
- #if defined(ESP8266)
-  WiFi.hostname(wifiSettings.hostname.c_str()); //define hostname  
- #endif  
   
   WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
     #ifdef DEBUG   
@@ -1576,15 +1540,9 @@ void setup()
   #ifdef CUSTOM_GPIOS     
     pinMode(customOutput1, OUTPUT); 
     pinMode(customOutput2, OUTPUT);
-    pinMode(doorbellOutputPin, OUTPUT);
-    #ifdef ESP32 
+    pinMode(doorbellOutputPin, OUTPUT);    
     pinMode(customInput1, INPUT_PULLDOWN);
-    pinMode(customInput2, INPUT_PULLDOWN);
-    #endif
-    #ifdef ESP8266
-    pinMode(customInput1);
-    pinMode(customInput2);
-    #endif
+    pinMode(customInput2, INPUT_PULLDOWN);    
   #endif  
 
   settingsManager.loadWifiSettings();

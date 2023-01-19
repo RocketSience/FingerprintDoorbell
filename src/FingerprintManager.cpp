@@ -1,31 +1,15 @@
 #include "Arduino.h"
 #include "FingerprintManager.h"
 #include "global.h"
-
 #include <Adafruit_Fingerprint.h>
-
-#ifdef ESP32
 #define mySerial Serial2
-#endif
-
-#ifdef ESP8266
-#include <SoftwareSerial.h>
-SoftwareSerial swSer(14, 12);
-#define mySerial swSer
-#endif
 
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
 bool FingerprintManager::connect() {
   
-    // initialize input pins
-    #if defined(ESP32)
+    // initialize input pins    
     pinMode(touchRingPin, INPUT_PULLDOWN);
-    #endif
-
-    #if defined(ESP8266)
-    pinMode(touchRingPin,INPUT);
-    #endif
 
     #ifdef DEBUG
     Serial.println("\n\nAdafruit finger detect test");
