@@ -20,6 +20,10 @@
 #include "esp-knx-ip.h"
 address_t door1_ga;
 address_t door2_ga;
+address_t doorenable_ga;
+address_t doorenstate_ga;
+address_t ringenable_ga;
+address_t ringenstate_ga;
 address_t message_ga;
 address_t doorbell_ga;
 address_t alarmdisable_ga;
@@ -30,6 +34,8 @@ address_t ledstate_ga;
 address_t touch_ga;
 address_t touchstate_ga;
 bool alarm_system_armed = false;
+bool ringEnableState = true;
+bool doorEnableState = true;
 #endif
 
 enum class Mode { scan, wait, enroll, wificonfig, maintenance };
@@ -68,9 +74,7 @@ long rssi = 0.0;
   const unsigned long doorBell_impulseDuration = 1 * 1000UL; 
   const unsigned long doorBell_blockAfterMatchDuration = 10 * 1000UL;   
   bool doorBell_blocked = false;
-  bool doorBell_block_trigger = false;
-
-
+  bool doorBell_block_trigger = false;  
   const unsigned long door1_impulseDuration = 2 * 1000UL; 
   const unsigned long door2_impulseDuration = 2 * 1000UL; 
   const unsigned long door1_triggerDelay = 1 * 1000UL; 
@@ -189,6 +193,34 @@ void touchStateToKNX(){
   }
 }
 
+void ringEnableStateToKNX(){
+  static int lastRingEnableState = -1;
+  if (ringEnableState != lastRingEnableState){
+    lastRingEnableState = ringEnableState;
+    if (String(settingsManager.getKNXSettings().ringenstate_ga).isEmpty() == false){
+      if (ringEnableState == 1){
+        knx.write_1bit(ringenstate_ga, true);        
+      }else{
+        knx.write_1bit(ringenstate_ga, false);        
+      }    
+    }
+  }
+}
+
+void doorEnableStateToKNX(){
+  static int lastDoorEnableState = -1;
+  if (doorEnableState != lastDoorEnableState){
+    lastDoorEnableState = doorEnableState;
+    if (String(settingsManager.getKNXSettings().doorenstate_ga).isEmpty() == false){
+      if (doorEnableState == 1){
+        knx.write_1bit(doorenstate_ga, true);        
+      }else{
+        knx.write_1bit(doorenstate_ga, false);        
+      }    
+    }
+  }
+}
+
 void led_cb(message_t const &msg, void *arg)
 {
 	//switch (ct)
@@ -294,6 +326,78 @@ void alarm_armed_cb(message_t const &msg, void *arg)
 	}
 }
 
+void door_enabled_cb(message_t const &msg, void *arg)
+{
+	//switch (ct)
+	switch (msg.ct)
+	{
+	case KNX_CT_WRITE:
+		if (msg.data[0] == 1){
+      doorEnableState = true;
+      saveRemanentIntToPrefs ("door_enable", 1);
+      notifyClients("Received: Door opening enabled!");      
+    }
+    else if (msg.data[0] == 0){
+      doorEnableState = false;
+      saveRemanentIntToPrefs ("door_enable", 0);  
+      notifyClients("Received: Door opening disabled!");          
+    }    
+    #ifdef DEBUG
+        Serial.println("Door opening Status Callback triggered!");
+        Serial.print("Value: ");
+        Serial.println(msg.data[0]);
+
+    #endif    
+		break;
+	case KNX_CT_READ:
+    #ifdef DEBUG
+        Serial.println("Door opening Status Read Callback triggered!");
+    #endif
+    if (String(settingsManager.getKNXSettings().doorenstate_ga).isEmpty() == false){
+        knx.answer_1bit(doorenstate_ga, doorEnableState);
+        }
+        Serial.println((String)"Door opening enable State: " + doorEnableState);		
+		break;
+	}
+}
+
+void ring_enabled_cb(message_t const &msg, void *arg)
+{
+	//switch (ct)
+	switch (msg.ct)
+	{
+	case KNX_CT_WRITE:
+		if (msg.data[0] == 1){
+      ringEnableState = true;
+      saveRemanentIntToPrefs ("ring_enable", 1);
+      notifyClients("Received: Doorbell ringing enabled!");      
+    }
+    else if (msg.data[0] == 0){
+      ringEnableState = false;
+      saveRemanentIntToPrefs ("ring_enable", 0);  
+      notifyClients("Received: Doorbell ringing disabled!");          
+    }    
+    #ifdef DEBUG
+        Serial.println("Doorbell ringing Status Callback triggered!");
+        Serial.print("Value: ");
+        Serial.println(msg.data[0]);
+
+    #endif    
+		break;
+	case KNX_CT_READ:
+    #ifdef DEBUG
+        Serial.println("Doorbell ringing Status Read Callback triggered!");
+    #endif	
+    if (String(settingsManager.getKNXSettings().ringenstate_ga).isEmpty() == false){
+        knx.answer_1bit(ringenstate_ga, ringEnableState);
+        }
+        Serial.println((String)"Doorbell ringing enable State: " + ringEnableState); 	
+		break;
+	}
+}
+
+
+
 int getValue(String data, char separator, int index)
 {
   int found = 0;
@@ -341,6 +445,14 @@ void SetupKNX(){
     Serial.println(knxSettings.door1_ga.c_str());    
     Serial.print("KNX Door2 GA: ");
     Serial.println(knxSettings.door2_ga.c_str());
+    Serial.print("KNX Door Enable GA: ");
+    Serial.println(knxSettings.doorenable_ga.c_str());
+    Serial.print("KNX Door Enable State GA: ");
+    Serial.println(knxSettings.doorenstate_ga.c_str());
+    Serial.print("KNX Ring Enable GA: ");
+    Serial.println(knxSettings.ringenable_ga.c_str());
+    Serial.print("KNX Ring Enable State GA: ");
+    Serial.println(knxSettings.ringenstate_ga.c_str());
     Serial.print("KNX DoorBell GA: ");
     Serial.println(knxSettings.doorbell_ga.c_str());
     Serial.print("KNX Alarm Disable GA: ");
@@ -370,6 +482,26 @@ void SetupKNX(){
     getValue(knxSettings.door2_ga,'/',0), 
     getValue(knxSettings.door2_ga,'/',1), 
     getValue(knxSettings.door2_ga,'/',2));  
+
+  doorenable_ga = knx.GA_to_address(
+    getValue(knxSettings.doorenable_ga,'/',0), 
+    getValue(knxSettings.doorenable_ga,'/',1), 
+    getValue(knxSettings.doorenable_ga,'/',2));  
+
+  doorenstate_ga = knx.GA_to_address(
+    getValue(knxSettings.doorenstate_ga,'/',0), 
+    getValue(knxSettings.doorenstate_ga,'/',1), 
+    getValue(knxSettings.doorenstate_ga,'/',2)); 
+
+  ringenable_ga = knx.GA_to_address(
+    getValue(knxSettings.ringenable_ga,'/',0), 
+    getValue(knxSettings.ringenable_ga,'/',1), 
+    getValue(knxSettings.ringenable_ga,'/',2));  
+
+  ringenstate_ga = knx.GA_to_address(
+    getValue(knxSettings.ringenstate_ga,'/',0), 
+    getValue(knxSettings.ringenstate_ga,'/',1), 
+    getValue(knxSettings.ringenstate_ga,'/',2)); 
 
   doorbell_ga = knx.GA_to_address(
     getValue(knxSettings.doorbell_ga,'/',0), 
@@ -421,6 +553,10 @@ void SetupKNX(){
   callback_id_t set_TOUCH_id = knx.callback_register("Set Touch Ignore on/off", touch_cb);  
   callback_id_t get_TOUCHSTATE_id = knx.callback_register("Get Touch Ignore State on/off", touch_cb);  
   callback_id_t set_ALARM_ARMED_id = knx.callback_register("Status from Alarm System to FingerPrint", alarm_armed_cb);     
+  callback_id_t set_DOOR_ENABLE_id = knx.callback_register("Set Enable Door opening State", door_enabled_cb);     
+  callback_id_t get_DOOR_ENABLE_STATE_id = knx.callback_register("Get Enable Door opening State", door_enabled_cb);     
+  callback_id_t set_RING_ENABLE_id = knx.callback_register("Enable Doorbell ringing", ring_enabled_cb);     
+  callback_id_t get_RING_ENABLE_STATE_id = knx.callback_register("Get Enable Doorbell ringing State", ring_enabled_cb);     
 
   // Assign callbacks to group addresses  
   knx.callback_assign(set_LED_id, knx.GA_to_address(
@@ -447,6 +583,26 @@ void SetupKNX(){
      getValue(knxSettings.alarmarmed_ga,'/',0), 
      getValue(knxSettings.alarmarmed_ga,'/',1), 
      getValue(knxSettings.alarmarmed_ga,'/',2))); 
+
+  knx.callback_assign(set_DOOR_ENABLE_id, knx.GA_to_address(
+     getValue(knxSettings.doorenable_ga,'/',0), 
+     getValue(knxSettings.doorenable_ga,'/',1), 
+     getValue(knxSettings.doorenable_ga,'/',2))); 
+
+  knx.callback_assign(get_DOOR_ENABLE_STATE_id, knx.GA_to_address(
+     getValue(knxSettings.doorenstate_ga,'/',0), 
+     getValue(knxSettings.doorenstate_ga,'/',1), 
+     getValue(knxSettings.doorenstate_ga,'/',2))); 
+
+  knx.callback_assign(set_RING_ENABLE_id, knx.GA_to_address(
+     getValue(knxSettings.ringenable_ga,'/',0), 
+     getValue(knxSettings.ringenable_ga,'/',1), 
+     getValue(knxSettings.ringenable_ga,'/',2))); 
+
+  knx.callback_assign(get_RING_ENABLE_STATE_id, knx.GA_to_address(
+     getValue(knxSettings.ringenstate_ga,'/',0), 
+     getValue(knxSettings.ringenstate_ga,'/',1), 
+     getValue(knxSettings.ringenstate_ga,'/',2))); 
 
     //knx.udpAddress_set(knx_router_ip.c_str());
     knx.udpAddress_set(knxSettings.knxrouter_ip.c_str());
@@ -541,6 +697,14 @@ String processor(const String& var){
     return settingsManager.getKNXSettings().door1_ga;
     } else if (var == "DOOR2_GA") {
     return settingsManager.getKNXSettings().door2_ga;
+    } else if (var == "DOORENABLE_GA") {
+    return settingsManager.getKNXSettings().doorenable_ga;
+    } else if (var == "DOORENABLESTATE_GA") {
+    return settingsManager.getKNXSettings().doorenstate_ga;
+    } else if (var == "RINGENABLE_GA") {
+    return settingsManager.getKNXSettings().ringenable_ga;
+    } else if (var == "RINGENABLESTATE_GA") {
+    return settingsManager.getKNXSettings().ringenstate_ga;
     } else if (var == "DOORBELL_GA") {
     return settingsManager.getKNXSettings().doorbell_ga;
     } else if (var == "ALARMDISABLE_GA") {
@@ -553,6 +717,10 @@ String processor(const String& var){
       return fingerManager.LedTouchRing == 1 ? "ON" : "OFF"; 
     }else if (var == "ALARMSYSTEM_STATE") {      
       return alarm_system_armed == 1 ? "ON" : "OFF";                 
+    }else if (var == "DOORENB_STATE") {      
+      return doorEnableState == 1 ? "ON" : "OFF";                 
+    }else if (var == "RINGENB_STATE") {      
+      return ringEnableState == 1 ? "ON" : "OFF";                 
     }else if (var == "AUTOUNARM_GA") {
     return settingsManager.getKNXSettings().autounarm_ga;
     } else if (var == "MESSAGE_GA") {
@@ -864,6 +1032,10 @@ void startWebserver(){
         KNXSettings settings = settingsManager.getKNXSettings();        
         settings.door1_ga = request->arg("door1_ga");
         settings.door2_ga = request->arg("door2_ga");
+        settings.doorenable_ga = request->arg("doorenable_ga");
+        settings.doorenstate_ga = request->arg("doorenstate_ga");
+        settings.ringenable_ga = request->arg("ringenable_ga");
+        settings.ringenstate_ga = request->arg("ringenstate_ga");
         settings.doorbell_ga = request->arg("doorbell_ga");
         settings.alarmdisable_ga = request->arg("alarmdisable_ga");
         settings.alarmarmed_ga = request->arg("alarmarmed_ga");
@@ -1130,9 +1302,16 @@ void doDoorbell(){
   String mqttRootTopic = settingsManager.getAppSettings().mqttRootTopic;
   static bool active = false;
   static unsigned long startTime = 0;
-  if ((doorBell_trigger == true) && (doorBell_blocked == true))
-  doorBell_trigger = false;
-  else if ((doorBell_trigger == true) && (doorBell_blocked == false)){  
+  if ((doorBell_trigger == true) && ((doorBell_blocked == true) || (ringEnableState == false)))
+  {
+    doorBell_trigger = false;
+    #ifdef KNXFEATURE
+      if ((doorBell_blocked == false) && (ringEnableState == false)) 
+        notifyKNX( String("Ring blocked"));
+    #endif
+  }
+  else if ((doorBell_trigger == true) && (doorBell_blocked == false))
+  {  
     active = true;    
     doorBell_trigger = false;
     startTime = millis();            
@@ -1184,6 +1363,15 @@ void doDoorbell(){
   void doDoor1(){  
   static bool active = false;
   static unsigned long startTime = 0;
+  
+  #ifdef KNXFEATURE
+    if ((door1_trigger == true) && (doorEnableState == false))    
+    {
+      door1_trigger = false;
+      notifyKNX( String("Door1 blocked"));
+    }
+  #endif
+  
   if (door1_trigger == true){
     active = true;    
     door1_trigger = false;
@@ -1229,6 +1417,15 @@ void doDoorbell(){
 void doDoor2(){  
   static bool active = false;
   static unsigned long startTime = 0;
+  
+  #ifdef KNXFEATURE
+    if ((door2_trigger == true) && (doorEnableState == false))    
+    {
+      door2_trigger = false;
+      notifyKNX( String("Door2 blocked"));
+    }
+  #endif  
+  
   if (door2_trigger == true){
     active = true;    
     door2_trigger = false;
@@ -1312,6 +1509,39 @@ void doAlarmDisable(){
       }
     #endif      
 }
+}
+
+void loadKNXremanentData()
+{
+  if (loadRemanentIntFromPrefs("alarm_armed") > 0){
+        alarm_system_armed = true;
+  }else if (loadRemanentIntFromPrefs("alarm_armed") == 0){
+        alarm_system_armed = false;
+      }
+
+      if (loadRemanentIntFromPrefs("led") > 0){
+        fingerManager.setLedTouchRing(true);
+      }else if(loadRemanentIntFromPrefs("led") == 0){
+        fingerManager.setLedTouchRing(false);
+      }   
+
+      if (loadRemanentIntFromPrefs("touch_on") > 0){
+        fingerManager.setIgnoreTouchRing(false);
+      }else if (loadRemanentIntFromPrefs("touch_on") == 0){
+        fingerManager.setIgnoreTouchRing(true);
+      } 
+
+      if (loadRemanentIntFromPrefs("ring_enable") > 0){
+        ringEnableState = true;
+      }else if (loadRemanentIntFromPrefs("ring_enable") == 0){
+        ringEnableState = false;
+      }  
+
+      if (loadRemanentIntFromPrefs("door_enable") > 0){
+        doorEnableState = true;
+      }else if (loadRemanentIntFromPrefs("door_enable") == 0){
+        doorEnableState = false;
+      } 
 }
 #endif
 
@@ -1603,27 +1833,9 @@ void setup()
         fingerManager.setLedRingError();
       
       #ifdef KNXFEATURE      
-      SetupKNX();
-      knx.start();
-      if (loadRemanentIntFromPrefs("alarm_armed") > 0){
-        alarm_system_armed = true;
-      }else if (loadRemanentIntFromPrefs("alarm_armed") == 0){
-        alarm_system_armed = false;
-      }
-
-      if (loadRemanentIntFromPrefs("led") > 0){
-        fingerManager.setLedTouchRing(true);
-      }else if(loadRemanentIntFromPrefs("led") == 0){
-        fingerManager.setLedTouchRing(false);
-      }   
-
-      if (loadRemanentIntFromPrefs("touch_on") > 0){
-        fingerManager.setIgnoreTouchRing(false);
-      }else if (loadRemanentIntFromPrefs("touch_on") == 0){
-        fingerManager.setIgnoreTouchRing(true);
-      }      
-
-
+        SetupKNX();
+        knx.start();
+        loadKNXremanentData();
       #endif
 
     }  else {
@@ -1714,6 +1926,8 @@ doDoor1();
 doDoor2();
 ledStateToKNX();
 touchStateToKNX();
+ringEnableStateToKNX();
+doorEnableStateToKNX();
 #endif
 
 doDoorbellBlock();

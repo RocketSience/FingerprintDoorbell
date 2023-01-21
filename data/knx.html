@@ -188,6 +188,38 @@
 		<small class="text-muted">GA Format: 7/5/124</small>		
 		</div>
 	</div>
+
+	<div class="form-group">
+		<label class="col-md-4 control-label" for="doorenable_ga">[IN] Enable_Door_Opening Group Address</label>  
+		<div class="col-md-4">
+		<input id="doorenable_ga" name="doorenable_ga" type="text" placeholder="Group Address in format 7/5/125" class="form-control input-md" value="%DOORENABLE_GA%">
+		<small class="text-muted">GA Format: 7/5/125</small>		
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label class="col-md-4 control-label" for="doorenstate_ga">[OUT] Enable_Door_Opening State Group Address</label>  
+		<div class="col-md-4">
+		<input id="doorenstate_ga" name="doorenstate_ga" type="text" placeholder="Group Address in format 7/5/126" class="form-control input-md" value="%DOORENABLESTATE_GA%">
+		<small class="text-muted">GA Format: 7/5/126</small>		
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label class="col-md-4 control-label" for="ringenable_ga">[IN] Enable_Doorbell_Ringing Group Address</label>  
+		<div class="col-md-4">
+		<input id="ringenable_ga" name="ringenable_ga" type="text" placeholder="Group Address in format 7/5/127" class="form-control input-md" value="%RINGENABLE_GA%">
+		<small class="text-muted">GA Format: 7/5/127</small>		
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label class="col-md-4 control-label" for="ringenstate_ga">[OUT] Enable_Doorbell_Ringing State Group Address</label>  
+		<div class="col-md-4">
+		<input id="ringenstate_ga" name="ringenstate_ga" type="text" placeholder="Group Address in format 7/5/128" class="form-control input-md" value="%RINGENABLESTATE_GA%">
+		<small class="text-muted">GA Format: 7/5/128</small>		
+		</div>
+	</div>
 	
 		<div class="form-group">
 		<label class="col-md-4 control-label" for="message_ga">[OUT] Message Feedback Group Address</label>  
@@ -214,7 +246,7 @@
 	<p></p>
 	<nav class="navbar navbar-default ">
 		<div class="container-fluid">
-		  <p class="navbar-text">Version: %VERSIONINFO% - RSSI: %RSSIINFO% - LED: %LED_STATE% - TOUCH: %TOUCH_STATE% - ALARMSYSTEM: %ALARMSYSTEM_STATE%</p>
+		  <p class="navbar-text">Ver.: %VERSIONINFO% | RSSI: %RSSIINFO% | DOOR_ENABLED: %DOORENB_STATE% | RING_ENABLED: %RINGENB_STATE% |LED: %LED_STATE% | TOUCH: %TOUCH_STATE% | ALARMSYSTEM: %ALARMSYSTEM_STATE%</p>
 		</div>
 	</nav>
 

@@ -39,6 +39,10 @@ bool SettingsManager::loadKNXSettings() {
     if (preferences.begin("knxSettings", true)) {
         knxSettings.door1_ga = preferences.getString("door1_ga", String(""));
         knxSettings.door2_ga = preferences.getString("door2_ga", String(""));
+        knxSettings.doorenable_ga = preferences.getString("doorenable_ga", String(""));
+        knxSettings.doorenstate_ga = preferences.getString("doorenstate_ga", String(""));
+        knxSettings.ringenable_ga = preferences.getString("ringenable_ga", String(""));
+        knxSettings.ringenstate_ga = preferences.getString("ringenstate_ga", String(""));
         knxSettings.doorbell_ga = preferences.getString("doorbell_ga", String(""));        
         knxSettings.alarmdisable_ga = preferences.getString("alarmdisable_ga", String("")); 
         knxSettings.alarmarmed_ga = preferences.getString("alarmarmed_ga", String("")); 
@@ -72,6 +76,10 @@ void SettingsManager::saveKNXSettings() {
     preferences.begin("knxSettings", false); 
     preferences.putString("door1_ga", knxSettings.door1_ga);
     preferences.putString("door2_ga", knxSettings.door2_ga);
+    preferences.putString("doorenable_ga", knxSettings.doorenable_ga);
+    preferences.putString("doorenstate_ga", knxSettings.doorenstate_ga);
+    preferences.putString("ringenable_ga", knxSettings.ringenable_ga);
+    preferences.putString("ringenstate_ga", knxSettings.ringenstate_ga);
     preferences.putString("doorbell_ga", knxSettings.doorbell_ga);
     preferences.putString("alarmdisable_ga", knxSettings.alarmdisable_ga);
     preferences.putString("alarmarmed_ga", knxSettings.alarmarmed_ga);
