@@ -117,6 +117,13 @@ AsyncEventSource events("/events"); // event source (Server-Sent events)
 
 WiFiClient espClient;
 
+#ifndef MQTTFEATURE
+#define SETTINGSPATH "/settings.html"
+#endif
+#ifdef MQTTFEATURE
+#define SETTINGSPATH "/settingsmqtt.html"
+#endif
+
 #ifdef MQTTFEATURE
 PubSubClient mqttClient(espClient);
 
@@ -1019,7 +1026,7 @@ void startWebserver(){
         request->redirect("/");  
         shouldReboot = true;
       } else {
-        request->send(SPIFFS, "/settings.html", String(), false, processor);
+        request->send(SPIFFS, SETTINGSPATH, String(), false, processor);
       }
     });
 
@@ -1065,7 +1072,7 @@ void startWebserver(){
         doPairing();
         request->redirect("/");  
       } else {
-        request->send(SPIFFS, "/settings.html", String(), false, processor);
+        request->send(SPIFFS, SETTINGSPATH, String(), false, processor);
       }
     });
 
@@ -1088,7 +1095,7 @@ void startWebserver(){
         request->redirect("/");  
         shouldReboot = true;
       } else {
-        request->send(SPIFFS, "/settings.html", String(), false, processor);
+        request->send(SPIFFS, SETTINGSPATH, String(), false, processor);
       }
     });
 
@@ -1104,7 +1111,7 @@ void startWebserver(){
         request->redirect("/");  
         
       } else {
-        request->send(SPIFFS, "/settings.html", String(), false, processor);
+        request->send(SPIFFS, SETTINGSPATH, String(), false, processor);
       }
     });
 

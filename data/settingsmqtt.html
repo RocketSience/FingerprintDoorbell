@@ -69,7 +69,57 @@
 		<input id="tp_scans" name="tp_scans" type="text" placeholder="Number of scans (1-5) for new FP Template" class="form-control input-md" value="%TP_SCANS%">
 		<small class="text-muted">Leave empty if you want to use the default value (5).</small>		
 		</div>
-	</div>	
+	</div>
+	
+	
+	<div class="form-group">
+		<label class="col-md-4 control-label" for="mqtt_server">MQTT Server (Broker)</label>  
+		<div class="col-md-4">
+		<input id="mqtt_server" name="mqtt_server" type="text" placeholder="Address of your MQTT Broker" class="form-control input-md" value="%MQTT_SERVER%" required>
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label class="col-md-4 control-label" for="mqtt_port">MQTT Port</label>  
+		<div class="col-md-4">
+		<input id="mqtt_port" name="mqtt_port" type="text" placeholder="Port for connecting to your MQTT Broker" class="form-control input-md" value="%MQTT_PORT%">
+		<small class="text-muted">Leave empty if you want to use the default port (1833).</small>		
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label class="col-md-4 control-label" for="mqtt_username">MQTT Username</label>  
+		<div class="col-md-4">
+		<input id="mqtt_username" name="mqtt_username" type="text" placeholder="Username for connecting to your MQTT Broker" class="form-control input-md" value="%MQTT_USERNAME%">
+		<small class="text-muted">Leave empty if your broker is not requiring authentication.</small>		
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label class="col-md-4 control-label" for="mqtt_password">MQTT Password</label>  
+		<div class="col-md-4">
+		<input id="mqtt_password" name="mqtt_password" type="text" placeholder="Password for connecting to your MQTT Broker" class="form-control input-md" value="%MQTT_PASSWORD%">
+		<small class="text-muted">Leave empty if your broker is not requiring authentication.</small>		
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label class="col-md-4 control-label" for="mqtt_rootTopic">MQTT Root Topic</label>  
+		<div class="col-md-4">
+		<input id="mqtt_rootTopic" name="mqtt_rootTopic" type="text" placeholder="Root topic where FingerprintDoorbell publishes its messages" class="form-control input-md" value="%MQTT_ROOTTOPIC%" required>
+		<small class="text-muted">Published Topics (=write)<br>
+			- "%MQTT_ROOTTOPIC%/ring"<br>
+			- "%MQTT_ROOTTOPIC%/matchId"<br>
+			- "%MQTT_ROOTTOPIC%/matchName"<br>
+			- "%MQTT_ROOTTOPIC%/matchConfidence"<br>
+			- "%MQTT_ROOTTOPIC%/lastLogMessage"<br>
+			- "%MQTT_ROOTTOPIC%/rssiStatus (if enabled)"<br>
+			Subscribed Topics (=read)<br>
+			- "%MQTT_ROOTTOPIC%/ignoreTouchRing"<br>
+			- "%MQTT_ROOTTOPIC%/LedTouchRing"
+		</small>
+		</div>
+	</div>
 
 	<div class="form-group">
 		<label class="col-md-4 control-label" for="ntpServer">NTP Server</label>  
