@@ -1,18 +1,19 @@
-# FingerprintDoorbell (KNX enabled)
+
+# FingerprintDoorbell (KNX) 
+### KNX extended version of the genious [frickelzeugs /FingerprintDoorbell](https://github.com/frickelzeugs/FingerprintDoorbell)
 
 ## What is FingerprintDoorbell?
 It's more or less a doorbell with the ability to scan finger prints or a fingerprint reader with the ability to act as doorbell, depending on your perspective ;-). But lets speak some images:
 
 <img  src="https://raw.githubusercontent.com/frickelzeugs/FingerprintDoorbell/master/doc/images/doorbell-sample.jpg"  width="400">
-
 <img  src="https://raw.githubusercontent.com//RocketSience/FingerprintDoorbell/master/doc/images/web-manage.png"  width="600">
 <img  src="https://raw.githubusercontent.com//RocketSience/FingerprintDoorbell/master/doc/images/web-settings.png"  width="600">
 <img  src="https://raw.githubusercontent.com//RocketSience/FingerprintDoorbell/master/doc/images/knx-settings.png"  width="600">
 
 ## How does it work?
-If you put your finger on the sensor the system looks for a matching fingerprint. If it doesn't find one, it rings the bell (MQTT message is published and an GPIO pin is set to high). If a match was found, the matching finger ID together with a name and confidence will be published as MQTT messagage. In combination with a home automation solution (like OpenHAB, ioBroker, Home Assistant...) you can then trigger your door opener or smart lock. You can also define actions depending on the finger that was detected, like left thumb opens front door, right thumb opens garage, middle finger...
-
-  
+When you put your finger on the sensor, the system searches for a matching fingerprint. If it does not find one, it rings via a direct KNX telegram and a GPIO pin is set high). If a match is found and the finger ID is in one of the mapping lists, a KNX telegram is generated to open door1 or door2 and a KNX status telegram is published with the matching finger ID along with the door number and confidence. You can define the opening of door1 or door2 via the mapping of the fingers. 
+Likewise, if the corresponding KNX group addresses are configured, the alarm system is deactivated when a finger is detected, and is inside list Door1 or Door2.
+The status of the alarm system can also be transmitted to the reader via a corresponding communication object. This has the effect that when the alarm system is armed, the opening of the door is delayed by 1 second so that the alarm system has time to deactivate itself.  
 
 ## What do I need?
 - fingerprint reader Grow R503 (available at https://de.aliexpress.com/i/33053783539.html)
@@ -55,7 +56,7 @@ Now that esptool.py is available you can continue to flash the firmware. To star
 download [here](https://raw.githubusercontent.com/frickelzeugs/FingerprintDoorbell/master/doc/bootloader.zip)
 
 - firmware.bin
-- spiffs.bin
+- littlefs.bin
 
 contained in the [Release packages](https://github.com/frickelzeugs/FingerprintDoorbell/releases)
 
@@ -63,7 +64,7 @@ contained in the [Release packages](https://github.com/frickelzeugs/FingerprintD
 Copy all 5 files in a local folder, open your command line/shell, navigate to this folder and execute:
 
 ```
-esptool.py --chip esp32 --baud 460800 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 40m --flash_size detect 0x1000 bootloader_dio_40m.bin 0x8000 partitions.bin 0xe000 boot_app0.bin 0x10000 firmware.bin 2686976 spiffs.bin
+esptool.py --chip esp32 --baud 460800 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 40m --flash_size detect 0x1000 bootloader_dio_40m.bin 0x8000 partitions.bin 0xe000 boot_app0.bin 0x10000 firmware.bin 2686976 littlefs.bin
 ```
 
 If everything has worked your output should look something like this:
@@ -118,7 +119,7 @@ Method 1 is the prefered way if you just want a ready to use version of your Fin
 * Clone this GitHub repo and open the project workspace in VS Code (you can do this in one step from within VS Code)
 * Open the PlatformIO extension from the left sided toolbar and from the "Project Tasks" tree choose
   * esp32doit-devkit-v1 -> General -> Build (creates firmware.bin)
-  * esp32doit-devkit-v1 -> Platform -> Build Filesystem Image (creates spiffs.bin containing HTML and CSS files)
+  * esp32doit-devkit-v1 -> Platform -> Build Filesystem Image (creates littlefs.bin containing HTML and CSS files)
 * if the build finishes successfully you can start uploading to your ESP32 by using the following tasks
   * esp32doit-devkit-v1 -> General -> Upload
   * esp32doit-devkit-v1 -> Platform -> Upload Filesystem Image
@@ -136,14 +137,28 @@ Enter your settings and click "Save and restart" to bring the device back to nor
 ## Managing fingerprints
 The sensor has the capacity for storing up to 200 fingerprints. Theses memory slots are used as ID together with a name to increase human readability. To enroll new fingerprints enter a ID and name (optional) in the "Add/Replace fingerprint" section and click "Start enrollment". Now the system asks you to place and lift your finger to the sensor for 5 times. The 5 passes of scanning helps the sensor to improve its recognition rate. Don't try to vary your placing/position too much, because the enrollment process may fail if the 5 preceeding scans differ too much from each other and cannot be combined to one fingerprint template.
 
-<img  src="https://raw.githubusercontent.com/frickelzeugs/FingerprintDoorbell/master/doc/images/web-manage.png"  width="300">
+<img  src="https://raw.githubusercontent.com/frickelzeugs/FingerprintDoorbell/master/doc/images/web-manage.png"  width="500">
 
 If enrollment has completed successfull you can now test if your fingerprint matches.
 
-## Configure MQTT connection
+
+## Configure KNX connection
+Matching fingerprints (and also ring events) are published over direct KNX telegramms to your KNX System. For this you will have to configure the KNX settings in FingerprintDoorbell. 
+
+<img  src="https://raw.githubusercontent.com//RocketSience/FingerprintDoorbell/master/doc/images/knx-settings.png"  width="500">
+
+| KNX Setting                           | Purpose    | Values | 
+| ------------------------------------ | --------- | -------- |
+| Finger Mapping Door1            	| mapping | comma separated list with finger ID's, opening door1 |
+| Finger Mapping Door2            	| mapping | comma separated list with finger ID's, opening door2 |
+| KNX Interface IP Address        | config   | IP address of the KNX interface (1 tunnel s used) |
+
+
+## (optional) Configure MQTT connection
 Matching fingerprints (and also ring events) are published as messages to your MQTT broker at certain topics. For this you will have to configure your MQTT Broker settings in FingerprintDoorbell. If your broker does not need authentification by username and password just leave this fields empty. You can also specify a custom root topic under which FingerprintDoorbell publishes its messages or leave the default "fingerprintDoorbell" if you're fine with that.
 
 <img  src="https://raw.githubusercontent.com/frickelzeugs/FingerprintDoorbell/master/doc/images/web-settings.png"  width="300">
+
 
 | MQTT Topic                           | Action    | Values | 
 | ------------------------------------ | --------- | -------- |
@@ -152,6 +167,7 @@ Matching fingerprints (and also ring events) are published as messages to your M
 | fingerprintDoorbell/matchName        | publish   | "" by default, if a match was found the value holds the matching name for 3s |
 | fingerprintDoorbell/matchConfidence  | publish   | "" by default, if a match was found the value holds the conficence (number between "1" and "400", 1=low, 400=very high) for 3s |
 | fingerprintDoorbell/ignoreTouchRing  | subscribe | read by FingerprintDoorbell and enables/disables the touch ring (see FAQ below for details) |
+
 
 ## Advanced Actions
 ### Firmware Update
