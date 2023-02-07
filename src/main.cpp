@@ -1701,8 +1701,8 @@ void doScan()
           notifyKNX("Pairing inval");
           #endif
         }
-      }
-      currentMode = Mode::wait; //replaces delay(2000) i hate delays // wait some time before next scan to let the LED blink
+        currentMode = Mode::wait; //replaces delay(2000) i hate delays // wait some time before next scan to let the LED blink
+      }      
       break;
 
     case ScanResult::noMatchFound:
@@ -1740,7 +1740,21 @@ void doEnroll()
     return;
   }
 
-  NewFinger finger = fingerManager.enrollFinger(id, enrollName, settingsManager.getAppSettings().tpScans);
+  String name;
+    if (enrollName == "")
+    {      
+      if (fingerManager.fingerList[id] == "@empty")
+        {
+          name = enrollName;
+        }else{
+          name = fingerManager.fingerList[id];    
+        }
+    }else
+    {
+      name = enrollName;
+    }
+
+  NewFinger finger = fingerManager.enrollFinger(id, name, settingsManager.getAppSettings().tpScans);
   if (finger.enrollResult == EnrollResult::ok) {
     notifyClients("Enrollment successfull. You can now use your new finger for scanning.");
     updateClientsFingerlist(fingerManager.getFingerListAsHtmlOptionList());

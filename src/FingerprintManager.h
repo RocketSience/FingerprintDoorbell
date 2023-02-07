@@ -50,7 +50,7 @@ struct NewFinger {
 class FingerprintManager {       
   private:    
     bool lastTouchState = false;
-    String fingerList[201];
+    //String fingerList[201];
     int fingerCountOnSensor = 0;
     //bool ignoreTouchRing = false; // set to true when the sensor is usually exposed to rain to avoid false ring events. Can also be set conditional by a rain sensor over MQTT
     bool lastIgnoreTouchRing = false;
@@ -66,6 +66,7 @@ class FingerprintManager {
 
 
   public:
+    String fingerList[201];
     bool LedTouchRing = true;
     bool ignoreTouchRing = false; // set to true when the sensor is usually exposed to rain to avoid false ring events. Can also be set conditional by a rain sensor over MQTT
     bool connected;
