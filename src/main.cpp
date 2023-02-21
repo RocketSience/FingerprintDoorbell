@@ -1306,7 +1306,9 @@ void doDoor2TriggerDelay(){
 }
 
 void doDoorbell(){  
-  String mqttRootTopic = settingsManager.getAppSettings().mqttRootTopic;
+  #ifdef MQTTFEATURE
+    String mqttRootTopic = settingsManager.getAppSettings().mqttRootTopic;
+  #endif
   static bool active = false;
   static unsigned long startTime = 0;
   if ((doorBell_trigger == true) && ((doorBell_blocked == true) || (ringEnableState == false)))
@@ -1617,16 +1619,16 @@ void connectMqttClient() {
 
 void doScan()
 {
+  static bool allowNewMatch = false;
   Match match = fingerManager.scanFingerprint();
-  String mqttRootTopic = settingsManager.getAppSettings().mqttRootTopic;
-  #ifdef KNXFEATURE
-  String door1List = settingsManager.getKNXSettings().door1_list;
-  String door2List = settingsManager.getKNXSettings().door2_list;
-  #endif
+  #ifdef MQTTFEATURE
+    String mqttRootTopic = settingsManager.getAppSettings().mqttRootTopic;
+  #endif  
   switch(match.scanResult)
   {
     case ScanResult::noFinger:
       // standard case, occurs every iteration when no finger touchs the sensor
+      allowNewMatch = true;
       if (match.scanResult != lastMatch.scanResult) {
         #ifdef DEBUG
         Serial.println("no finger");
@@ -1641,10 +1643,21 @@ void doScan()
       break; 
 
     case ScanResult::matchFound:
-      notifyClients( String("Match Found: ") + match.matchId + " - " + match.matchName  + " with confidence of " + match.matchConfidence );      
-      doorBell_block_trigger = true; // block Doorbell for n seconds 
-      if (match.scanResult != lastMatch.scanResult) {
+      
+      //if (match.scanResult != lastMatch.scanResult) {
+      if ((allowNewMatch == false) && (match.scanResult != lastMatch.scanResult)){
+        notifyClients( String("Match Found-: ") + match.matchId + " - " + match.matchName  + " with confidence of " + match.matchConfidence ); 
+      }
+      if (allowNewMatch == true) {
+        allowNewMatch = false; // allow only if noFinger or noMatch bevore
+        notifyClients( String("Match Found+: ") + match.matchId + " - " + match.matchName  + " with confidence of " + match.matchConfidence );      
+        doorBell_block_trigger = true; // block Doorbell for n seconds 
+
         if (checkPairingValid()) {
+          #ifdef KNXFEATURE
+            String door1List = settingsManager.getKNXSettings().door1_list;
+            String door2List = settingsManager.getKNXSettings().door2_list;
+          #endif
           #ifdef MQTTFEATURE
           mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "off");
           mqttClient.publish((String(mqttRootTopic) + "/matchId").c_str(), String(match.matchId).c_str());
@@ -1693,12 +1706,10 @@ void doScan()
           Serial.println("MQTT message sent: Open the door!");
           #endif
           #endif
-        } else {
-          #ifdef MQTTFEATURE
-          notifyClients("Security issue! Match was not sent by MQTT because of invalid sensor pairing! This could potentially be an attack! If the sensor is new or has been replaced by you do a (re)pairing in settings page.");
-          #endif
+        } else {          
+            notifyClients("Security issue! Match was not sent by MQTT because of invalid sensor pairing! This could potentially be an attack! If the sensor is new or has been replaced by you do a (re)pairing in settings page.");
           #ifdef KNXFEATURE
-          notifyKNX("Pairing inval");
+            notifyKNX("Pairing inval");
           #endif
         }
         currentMode = Mode::wait; //replaces delay(2000) i hate delays // wait some time before next scan to let the LED blink
@@ -1706,6 +1717,7 @@ void doScan()
       break;
 
     case ScanResult::noMatchFound:
+      allowNewMatch = true;
       notifyClients(String("No Match Found (Code ") + match.returnCode + ")");
       if (match.scanResult != lastMatch.scanResult) {        
         doorBell_trigger = true;        
